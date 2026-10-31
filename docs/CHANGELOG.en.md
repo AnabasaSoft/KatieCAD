@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.2
+- New: **own menu bar now on Windows as well**: looks the same everywhere and follows the colour scheme (the Windows menu bar was always white); macOS keeps its native menu bar; set the environment variable `KATIECAD_NATIVE_MENU=1` to force the native bar
 - Fix: the About window showed a thin line left of the mascot (1 pixel edge in `KatieCAD_Maskottchen.png`); removed
 - Fix (Linux): **sub-menus of the menu bar** (View > Colour scheme, Place toolbars, also nested) could not be opened; they now open by mouse (hover/click) and keyboard (arrows, Enter, Esc); the menu bar follows the colour scheme
 - New: in the **light colour scheme** the About window shows the lettering with a dark "Katie" (file `KatieCAD_Banner_dunkel.png`); violet and black keep the light lettering

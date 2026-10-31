@@ -1475,7 +1475,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                      for i in range(menubar.index("end") + 1)
                      if menubar.type(i) == "cascade"]
         if self._eigene_menueleiste():
-            # Linux/X11: own bar without grab (see menuleiste.py)
+            # Linux/X11 and Windows: own bar without grab (see menuleiste.py)
             if self._menuleiste is None:
                 self._menuleiste = MenuLeiste(
                     self.root, FARBEN["bg_mittel"], FARBEN["cyan"],
@@ -1500,11 +1500,13 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self._menues_schliessen_binden()
 
     def _eigene_menueleiste(self):
-        """Own menu bar only on X11 (Linux); Windows/macOS stay native."""
+        """Own menu bar on Linux (X11) and Windows: it follows the colour scheme (the native
+        Windows bar is always white) and looks the same everywhere. macOS keeps its native
+        menu bar at the top of the screen. KATIECAD_NATIVE_MENU=1 forces the native bar."""
         if os.environ.get("KATIECAD_NATIVE_MENU"):
             return False
         try:
-            return self.root.tk.call("tk", "windowingsystem") == "x11"
+            return self.root.tk.call("tk", "windowingsystem") in ("x11", "win32")
         except tk.TclError:
             return False
 

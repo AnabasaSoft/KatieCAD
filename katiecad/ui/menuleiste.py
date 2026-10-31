@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-katiecad/ui/menuleiste.py - Own menu bar for Linux/X11 (MIT).
+katiecad/ui/menuleiste.py - Own menu bar for Linux/X11 and Windows (MIT).
 
 Why: the native Tk menu bar grabs mouse and keyboard. On X11/XWayland
 (GNOME) this grab is not honoured: after switching to another application
 the open menu stays on screen on top of the foreign window. This menu bar
 has no grab; it simply closes when the window loses the focus or when the
-user clicks elsewhere.
+user clicks elsewhere. On Windows it replaces the native bar, which is always
+white and cannot follow the colour scheme.
 
 The menus are still ordinary (never posted) tk.Menu objects used as data
 model: this class only reads their entries (label, accelerator, state,

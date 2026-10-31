@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.2
+- Neu: **Eigene Menüleiste jetzt auch unter Windows**: sieht überall gleich aus und folgt dem Farbschema (die Windows-Menüleiste war immer weiß); macOS behält seine native Menüleiste; mit der Umgebungsvariable `KATIECAD_NATIVE_MENU=1` lässt sich die native Leiste erzwingen
 - Fix: Info-Fenster zeigte links neben dem Maskottchen einen dünnen Strich (1 Pixel Rand in `KatieCAD_Maskottchen.png`); entfernt
 - Fix (Linux): **Untermenüs der Menüleiste** (Ansicht › Farbschema, Werkzeugleisten platzieren, auch verschachtelt) ließen sich nicht öffnen; sie öffnen jetzt per Maus (Überfahren/Klick) und Tastatur (→ ← ↑ ↓, Enter, Esc); die Menüleiste folgt dem Farbschema
 - Neu: Info-Fenster zeigt im **hellen Farbschema** den Schriftzug mit dunklem „Katie“ (Datei `KatieCAD_Banner_dunkel.png`); Violett und Schwarz behalten den hellen Schriftzug
