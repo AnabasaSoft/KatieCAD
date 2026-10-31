@@ -576,6 +576,11 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         _style_setup(self.root)
         self.root.configure(bg=FARBEN["bg_dunkel"])
         self._widgets_umfaerben(mapping)
+        for f in getattr(self, "_status_stile", []):      # on/off colours of the status bar buttons
+            try:
+                f()
+            except tk.TclError:
+                pass
         self._retranslate_ui()
         v = getattr(self, "_ansicht3d", None)
         if v is not None:
@@ -1828,6 +1833,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         bar.pack(side=tk.BOTTOM, fill=tk.X)
         self._statusbar_frame = bar
         self._status_buttons = {}
+        self._status_stile = []            # update functions (colours of the toggle buttons)
         # fixed place bottom left: stays reachable when the sidebar is hidden
         self.btn_seitenleiste = ttk.Button(bar, text="\u2630", width=3,
                                            command=self.seitenleiste_umschalten)
@@ -1856,6 +1862,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                              highlightbackground=FARBEN["rand"])
             var.trace_add("write", update_style)
             update_style()
+            self._status_stile.append(update_style)
             self._status_buttons[key] = (b, key_hint)
             return b
 
@@ -1870,6 +1877,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             activeforeground=FARBEN["text_hell"],
             command=self._zeige_osnap_menue)
         self.fang_pfeil.pack(side=tk.LEFT, padx=(0, 2))
+        self._status_stile.append(lambda: self.fang_pfeil.config(
+            bg=FARBEN["bg_hell"], fg=FARBEN["cyan"], activebackground=FARBEN["bg_hover"],
+            activeforeground=FARBEN["text_hell"], highlightbackground=FARBEN["rand"]))
         self.snap_btn = toggle_btn("snap", tr("sb.fang"), self.grid_snap, key_hint="F9")
         self.ortho_btn = toggle_btn("ortho", tr("sb.ortho"), self.ortho, key_hint="F8")
         self.raster_btn = toggle_btn("raster", tr("sb.raster"), self.raster_sichtbar,
