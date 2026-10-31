@@ -2,7 +2,7 @@
 
 ## 1.1.2
 - Neu: **Meldungsfenster im Design des Programms** (Farbschema, Ja/Nein/Abbrechen, J/N-Tasten, Enter/Esc) statt der Systemfenster
-- Änderung: **Datei › Neu** fragt immer nach: bei ungespeicherten Änderungen „Änderungen speichern?“ (Ja/Nein/Abbrechen), sonst eine klare Bestätigung (Standard: Nein); in einem Projekt nennt die Frage das Blatt, das geleert wird
+- Änderung: **Datei › Neu** fragt immer nach: bei ungespeicherten Änderungen „Änderungen speichern?“ (Ja/Nein/Abbrechen), sonst eine klare Bestätigung (Standard: Nein); in einem Projekt wird beim Klick auf Neu das **gesamte Projekt geschlossen** (vorher Frage „Änderungen im Projekt speichern?“), Blätter verwaltet man nur über die Seitenleiste
 - Neu: **Eigene Menüleiste jetzt auch unter Windows**: sieht überall gleich aus und folgt dem Farbschema (die Windows-Menüleiste war immer weiß); macOS behält seine native Menüleiste; mit der Umgebungsvariable `KATIECAD_NATIVE_MENU=1` lässt sich die native Leiste erzwingen
 - Fix: Info-Fenster zeigte links neben dem Maskottchen einen dünnen Strich (1 Pixel Rand in `KatieCAD_Maskottchen.png`); entfernt
 - Fix (Linux): **Untermenüs der Menüleiste** (Ansicht › Farbschema, Werkzeugleisten platzieren, auch verschachtelt) ließen sich nicht öffnen; sie öffnen jetzt per Maus (Überfahren/Klick) und Tastatur (→ ← ↑ ↓, Enter, Esc); die Menüleiste folgt dem Farbschema

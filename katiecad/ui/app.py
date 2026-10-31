@@ -5442,45 +5442,55 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                         f"It is located here:\n{pf}"), parent=self.root)
 
     def neu(self):
-        """File > New: empties the drawing (in a project: the current sheet). It never happens
-        without asking."""
+        """File > New: closes the current drawing and starts a new, empty single drawing.
+        With an open project the WHOLE project is closed (sheets are managed in the side bar
+        only). It never happens without asking."""
         de = SPRACHE["aktuell"] == "de"
         p = self.projekt
-        blatt = ""
-        if p is not None and p.blaetter:
-            blatt = p.blaetter[p.aktiv].name
-        if self._dirty:
-            if p is not None:
-                frage = (f"Das Blatt \u201e{blatt}\u201c wurde geändert.\n\nMöchten Sie die Änderungen "
-                         f"speichern? Danach wird das Blatt geleert." if de else
-                         f"The sheet \u201c{blatt}\u201d has been modified.\n\nDo you want to save "
-                         f"the changes? The sheet is emptied afterwards.")
+        titel = "Neue Zeichnung" if de else "New drawing"
+        if p is not None:
+            if self._dirty:
+                frage = (f"Das Projekt \u201e{p.name}\u201c hat nicht gespeicherte Änderungen.\n\n"
+                         f"Möchten Sie die Änderungen im Projekt speichern? Danach wird das "
+                         f"gesamte Projekt geschlossen und eine neue Zeichnung angelegt." if de else
+                         f"The project \u201c{p.name}\u201d has unsaved changes.\n\nDo you want to save "
+                         f"the changes in the project? Afterwards the whole project is closed and "
+                         f"a new drawing is created.")
+                antwort = messagebox.askyesnocancel(titel, frage, parent=self.root)
+                if antwort is None:
+                    return
+                if antwort and not self.projekt_speichern():
+                    return
             else:
-                frage = ("Die Zeichnung wurde geändert.\n\nMöchten Sie die Änderungen speichern, "
-                         "bevor eine neue Zeichnung angelegt wird?" if de else
-                         "The drawing has been modified.\n\nDo you want to save the changes "
-                         "before a new drawing is created?")
+                frage = (f"Das Projekt \u201e{p.name}\u201c wird geschlossen und eine neue, leere "
+                         f"Zeichnung angelegt.\n\nFortfahren?" if de else
+                         f"The project \u201c{p.name}\u201d is closed and a new, empty drawing is "
+                         f"created.\n\nContinue?")
+                if not messagebox.askyesno(titel, frage, default=messagebox.NO, parent=self.root):
+                    return
+            self._projekt_zuruecksetzen()
+            self.status.set(tr("msg.projekt.geschlossen"))
+            return
+        if self._dirty:
             antwort = messagebox.askyesnocancel(
-                ("Neue Zeichnung" if de else "New drawing"), frage, parent=self.root)
+                titel,
+                ("Die Zeichnung wurde geändert.\n\nMöchten Sie die Änderungen speichern, "
+                 "bevor eine neue Zeichnung angelegt wird?" if de else
+                 "The drawing has been modified.\n\nDo you want to save the changes "
+                 "before a new drawing is created?"), parent=self.root)
             if antwort is None:
                 return
             if antwort:
                 if not self.speichern():
                     return
-        else:
-            if p is not None:
-                frage = (f"Das Blatt \u201e{blatt}\u201c wird geleert und durch ein leeres Blatt "
-                         f"ersetzt.\n\nFortfahren?" if de else
-                         f"The sheet \u201c{blatt}\u201d is emptied and replaced by an empty "
-                         f"sheet.\n\nContinue?")
-            else:
-                frage = ("Die aktuelle Zeichnung wird geschlossen und eine neue, leere Zeichnung "
-                         "angelegt.\n\nFortfahren?" if de else
-                         "The current drawing is closed and a new, empty drawing is created."
-                         "\n\nContinue?")
-            if not messagebox.askyesno(("Neue Zeichnung" if de else "New drawing"), frage,
-                                       default=messagebox.NO, parent=self.root):
-                return
+        elif not messagebox.askyesno(
+                titel,
+                ("Die aktuelle Zeichnung wird geschlossen und eine neue, leere Zeichnung "
+                 "angelegt.\n\nFortfahren?" if de else
+                 "The current drawing is closed and a new, empty drawing is created."
+                 "\n\nContinue?"),
+                default=messagebox.NO, parent=self.root):
+            return
         self.elemente = []
         self.layouts = [Layout("Layout1", Layout.STANDARD_FORMAT, "#1c132d")]
         self.aktives_layout = 0
