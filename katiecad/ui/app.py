@@ -1485,6 +1485,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                     self._menuleiste.pack(side=tk.TOP, fill=tk.X, before=erstes)
                 else:
                     self._menuleiste.pack(side=tk.TOP, fill=tk.X)
+            self._menuleiste.farben_setzen(FARBEN["bg_mittel"], FARBEN["cyan"],
+                                           FARBEN["cyan"], FARBEN["bg_dunkel"],
+                                           FARBEN["text_dim"])
             self._menuleiste.setze(eintraege)
         else:
             self.root.config(menu=menubar)

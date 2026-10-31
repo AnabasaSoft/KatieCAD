@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.2
+- Fix (Linux): **Untermenüs der Menüleiste** (Ansicht › Farbschema, Werkzeugleisten platzieren, auch verschachtelt) ließen sich nicht öffnen; sie öffnen jetzt per Maus (Überfahren/Klick) und Tastatur (→ ← ↑ ↓, Enter, Esc); die Menüleiste folgt dem Farbschema
 - Neu: Info-Fenster zeigt im **hellen Farbschema** den Schriftzug mit dunklem „Katie“ (Datei `KatieCAD_Banner_dunkel.png`); Violett und Schwarz behalten den hellen Schriftzug
 - Änderung: **Zeichnungshintergrund (Modell und Layout) ist eine Programmeinstellung** und steht nicht mehr in der Zeichnungs-/Projektdatei; fremde Dateien öffnen mit dem eigenen Hintergrund, alte Dateien bleiben lesbar
 - Neu: **Farbschema** (Ansicht › Farbschema): Violett (Standard), Schwarz und Hell für Menüs, Leisten, Seitenleisten und Dialoge; wirkt sofort und wird gespeichert

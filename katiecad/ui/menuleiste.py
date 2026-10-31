@@ -17,6 +17,14 @@ import tkinter as tk
 import tkinter.font as tkfont
 
 
+class _Pop:
+    """One drop-down (or sub-menu) window with its rows."""
+    __slots__ = ("pop", "zeilen", "aktiv", "ebene")
+
+    def __init__(self, pop, ebene):
+        self.pop, self.zeilen, self.aktiv, self.ebene = pop, [], None, ebene
+
+
 class MenuLeiste(tk.Frame):
     def __init__(self, parent, bg, fg, aktiv_bg, aktiv_fg, sperr_fg="#6b5c8a"):
         super().__init__(parent, bg=bg, bd=0, highlightthickness=0)
@@ -25,10 +33,9 @@ class MenuLeiste(tk.Frame):
         self._sperr = sperr_fg
         self._eintraege = []           # [(label_widget, tk.Menu)]
         self._offen = None             # index of the open menu
-        self._popup = None
-        self._cache = {}               # index -> (popup, zeilen): built once
-        self._zeilen = []              # [(row_frame, menu_index, state, widgets)]
-        self._aktiv = None             # highlighted row (index into _zeilen)
+        self._stapel = []              # open windows: [drop-down, sub-menu, sub-sub-menu ...]
+        self._cache = {}               # index -> _Pop: built once
+        self._subcache = {}            # str(tk.Menu) -> _Pop of a sub-menu
         try:
             self._font = tkfont.nametofont("TkMenuFont")
         except tk.TclError:
@@ -42,17 +49,25 @@ class MenuLeiste(tk.Frame):
         top.bind_all("<Key>", self._taste, add="+")
 
     # ------------------------------------------------------------
+    def farben_setzen(self, bg, fg, aktiv_bg, aktiv_fg, sperr_fg=None):
+        """New colours (colour scheme change); takes effect with the next setze()."""
+        self._bg, self._fg, self._abg, self._afg = bg, fg, aktiv_bg, aktiv_fg
+        if sperr_fg:
+            self._sperr = sperr_fg
+        self.config(bg=bg)
+
     def setze(self, eintraege):
         """eintraege: [(label, tk.Menu)] - rebuilds the bar."""
         self.schliessen()
         for w, _m in self._eintraege:
             w.destroy()
-        for pop, _z in self._cache.values():
+        for p in list(self._cache.values()) + list(self._subcache.values()):
             try:
-                pop.destroy()
+                p.pop.destroy()
             except tk.TclError:
                 pass
         self._cache = {}
+        self._subcache = {}
         self._eintraege = []
         for i, (label, menu) in enumerate(eintraege):
             w = tk.Label(self, text=label, bg=self._bg, fg=self._fg,
@@ -69,7 +84,7 @@ class MenuLeiste(tk.Frame):
         for i in range(len(self._eintraege)):
             if i not in self._cache:
                 try:
-                    self._bauen(i)
+                    self._cache[i] = self._pop_bauen(self._eintraege[i][1], 0)
                 except tk.TclError:
                     return
 
@@ -92,31 +107,34 @@ class MenuLeiste(tk.Frame):
             self.oeffnen(i)
 
     def oeffnen(self, i, tastatur=False):
-        self._popup_zerstoeren()
+        self._stapel_schliessen(0)
         self._offen = i
         self._faerben()
         w, menu = self._eintraege[i]
         if i not in self._cache:
-            self._bauen(i)
-        pop, zeilen = self._cache[i]
-        self._zeilen = zeilen
-        self._aktiv = None
-        self._auffrischen(zeilen)
-        x = w.winfo_rootx()
-        y = w.winfo_rooty() + w.winfo_height()
-        br, ho = pop.winfo_reqwidth(), pop.winfo_reqheight()
-        sb, sh = self.winfo_screenwidth(), self.winfo_screenheight()
-        x = max(0, min(x, sb - br))
-        y = max(0, min(y, sh - ho))
-        pop.geometry("+%d+%d" % (x, y))
-        pop.deiconify()
-        pop.lift()
-        self._popup = pop
+            self._cache[i] = self._pop_bauen(menu, 0)
+        p = self._cache[i]
+        p.aktiv = None
+        self._auffrischen(p)
+        self._anzeigen(p, w.winfo_rootx(), w.winfo_rooty() + w.winfo_height())
+        self._stapel = [p]
         if tastatur:
             self._weiter(+1)
 
-    def _bauen(self, i):
-        w, menu = self._eintraege[i]
+    def _anzeigen(self, p, x, y, links_von=None):
+        """Shows window p at (x, y); stays on the screen. links_von = x where the window
+        goes to the left of its parent if there is no room on the right."""
+        br, ho = p.pop.winfo_reqwidth(), p.pop.winfo_reqheight()
+        sb, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+        if links_von is not None and x + br > sb:
+            x = links_von - br
+        x = max(0, min(x, sb - br))
+        y = max(0, min(y, sh - ho))
+        p.pop.geometry("+%d+%d" % (x, y))
+        p.pop.deiconify()
+        p.pop.lift()
+
+    def _pop_bauen(self, menu, ebene):
         pop = tk.Toplevel(self)
         pop.withdraw()
         pop.overrideredirect(True)
@@ -128,21 +146,20 @@ class MenuLeiste(tk.Frame):
         rahmen.pack(fill=tk.BOTH, expand=True)
         innen = tk.Frame(rahmen, bg=self._bg, bd=0)
         innen.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
-        self._zeilen = []
+        p = _Pop(pop, ebene)
         try:
             ende = menu.index("end")
         except tk.TclError:
             ende = None
         if ende is not None:
             for idx in range(ende + 1):
-                self._zeile(innen, menu, idx)
+                self._zeile(innen, menu, idx, p)
         pop.update_idletasks()
-        self._cache[i] = (pop, self._zeilen)
-        self._zeilen = []
+        return p
 
-    def _auffrischen(self, zeilen):
+    def _auffrischen(self, p):
         """Takes over state and check marks of the menu entries."""
-        for nr, z in enumerate(zeilen):
+        for nr, z in enumerate(p.zeilen):
             zeile, idx, _alt, (l1, l2, l3), menu = z
             typ = menu.type(idx)
             try:
@@ -166,9 +183,9 @@ class MenuLeiste(tk.Frame):
             l1.config(text=marke, fg=fg)
             l2.config(fg=fg)
             l3.config(fg=fg)
-            zeilen[nr] = (zeile, idx, state, (l1, l2, l3), menu)
+            p.zeilen[nr] = (zeile, idx, state, (l1, l2, l3), menu)
 
-    def _zeile(self, innen, menu, idx):
+    def _zeile(self, innen, menu, idx, p):
         typ = menu.type(idx)
         if typ == "tearoff":
             return
@@ -196,7 +213,7 @@ class MenuLeiste(tk.Frame):
                 soll = menu.entrycget(idx, "onvalue" if typ == "checkbutton"
                                       else "value")
                 if str(wert) == str(soll):
-                    marke = "✓"
+                    marke = "\u2713"
             except tk.TclError:
                 pass
         zeile = tk.Frame(innen, bg=self._bg, bd=0)
@@ -206,41 +223,90 @@ class MenuLeiste(tk.Frame):
                       width=2, anchor="w")
         l2 = tk.Label(zeile, text=text, bg=self._bg, fg=fg, font=self._font,
                       anchor="w", padx=2, pady=3)
-        l3 = tk.Label(zeile, text=accel + ("  ▸" if typ == "cascade" else ""),
+        l3 = tk.Label(zeile, text=accel + ("  \u25b8" if typ == "cascade" else ""),
                       bg=self._bg, fg=fg, font=self._font, anchor="e", padx=10)
         l1.pack(side=tk.LEFT)
         l3.pack(side=tk.RIGHT)
         l2.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        nr = len(self._zeilen)
-        self._zeilen.append((zeile, idx, state, (l1, l2, l3), menu))
+        nr = len(p.zeilen)
+        p.zeilen.append((zeile, idx, state, (l1, l2, l3), menu))
         for wdg in (zeile, l1, l2, l3):
-            wdg.bind("<Enter>", lambda e, nr=nr: self._markieren(nr))
-            wdg.bind("<ButtonRelease-1>", lambda e, nr=nr: self._ausloesen(nr))
+            wdg.bind("<Enter>", lambda e, p=p, nr=nr: self._markieren(p, nr))
+            wdg.bind("<ButtonRelease-1>", lambda e, p=p, nr=nr: self._ausloesen(p, nr))
 
-    def _markieren(self, nr):
-        if self._aktiv is not None and self._aktiv < len(self._zeilen):
-            z = self._zeilen[self._aktiv]
+    def _markieren(self, p, nr, mit_untermenue=True):
+        if p.aktiv is not None and p.aktiv < len(p.zeilen):
+            z = p.zeilen[p.aktiv]
             for w in (z[0],) + z[3]:
                 w.config(bg=self._bg)
-            z[3][0].config(fg=self._fg if z[2] != "disabled" else self._sperr)
-            z[3][1].config(fg=self._fg if z[2] != "disabled" else self._sperr)
-            z[3][2].config(fg=self._fg if z[2] != "disabled" else self._sperr)
-        self._aktiv = nr
+            fg = self._fg if z[2] != "disabled" else self._sperr
+            for w in z[3]:
+                w.config(fg=fg)
+        p.aktiv = nr
         if nr is None:
             return
-        z = self._zeilen[nr]
+        z = p.zeilen[nr]
         if z[2] == "disabled":
+            self._stapel_schliessen(p.ebene + 1)
             return
         for w in (z[0],) + z[3]:
             w.config(bg=self._abg)
         for w in z[3]:
             w.config(fg=self._afg)
+        if mit_untermenue and self._ist_cascade(z):
+            self._sub_oeffnen(p, nr)
+        else:
+            self._stapel_schliessen(p.ebene + 1)
 
-    def _ausloesen(self, nr):
-        if nr is None or nr >= len(self._zeilen):
+    @staticmethod
+    def _ist_cascade(z):
+        try:
+            return z[4].type(z[1]) == "cascade"
+        except tk.TclError:
+            return False
+
+    def _sub_oeffnen(self, p, nr):
+        """Opens the sub-menu of row nr of window p (to the right of the row)."""
+        zeile, idx, _st, _w, menu = p.zeilen[nr]
+        try:
+            ziel = self.nametowidget(menu.entrycget(idx, "menu"))
+        except (tk.TclError, KeyError):
             return
-        _z, idx, state, _w, menu = self._zeilen[nr]
+        schluessel = str(ziel)
+        if (len(self._stapel) > p.ebene + 1
+                and self._stapel[p.ebene + 1] is self._subcache.get(schluessel)):
+            return                                   # already open
+        self._stapel_schliessen(p.ebene + 1)
+        sub = self._subcache.get(schluessel)
+        if sub is None:
+            sub = self._subcache[schluessel] = self._pop_bauen(ziel, p.ebene + 1)
+        sub.ebene = p.ebene + 1
+        sub.aktiv = None
+        self._auffrischen(sub)
+        px = p.pop.winfo_rootx()
+        self._anzeigen(sub, px + p.pop.winfo_width() - 2, zeile.winfo_rooty() - 2,
+                       links_von=px + 2)
+        del self._stapel[p.ebene + 1:]
+        self._stapel.append(sub)
+
+    def _stapel_schliessen(self, ab):
+        """Closes the sub-menus from level `ab` on (0 = everything)."""
+        for p in self._stapel[ab:]:
+            try:
+                p.pop.withdraw()
+            except tk.TclError:
+                pass
+        del self._stapel[ab:]
+
+    def _ausloesen(self, p, nr):
+        if nr is None or nr >= len(p.zeilen):
+            return
+        z = p.zeilen[nr]
+        _z, idx, state, _w, menu = z
         if state == "disabled":
+            return
+        if self._ist_cascade(z):                     # a click opens the sub-menu
+            self._markieren(p, nr)
             return
         self.schliessen()
         # after closing, so that dialogs are not blocked by the pop-up
@@ -254,18 +320,8 @@ class MenuLeiste(tk.Frame):
             pass
 
     # ------------------------------------------------------------
-    def _popup_zerstoeren(self):
-        if self._popup is not None:
-            try:
-                self._popup.withdraw()
-            except tk.TclError:
-                pass
-        self._popup = None
-        self._zeilen = []
-        self._aktiv = None
-
     def schliessen(self):
-        self._popup_zerstoeren()
+        self._stapel_schliessen(0)
         if self._offen is not None:
             self._offen = None
             self._faerben()
@@ -296,9 +352,10 @@ class MenuLeiste(tk.Frame):
         if self._offen is None:
             return
         w = event.widget
+        fenster = {id(p.pop) for p in self._stapel}
         try:
             while w is not None:
-                if w is self._popup or w is self:
+                if w is self or id(w) in fenster:
                     return
                 w = w.master
         except Exception:
@@ -311,35 +368,58 @@ class MenuLeiste(tk.Frame):
             return "break"
 
     def _weiter(self, richtung):
-        n = len(self._zeilen)
+        if not self._stapel:
+            return
+        p = self._stapel[-1]
+        n = len(p.zeilen)
         if not n:
             return
-        nr = self._aktiv
+        nr = p.aktiv
         for _ in range(n):
             if nr is None:
                 nr = 0 if richtung > 0 else n - 1
             else:
                 nr = (nr + richtung) % n
-            if self._zeilen[nr][2] != "disabled":
-                self._markieren(nr)
+            if p.zeilen[nr][2] != "disabled":
+                self._markieren(p, nr, mit_untermenue=False)
                 return
 
     def _taste(self, event):
-        if self._offen is None:
+        if self._offen is None or not self._stapel:
             return
         k = event.keysym
+        p = self._stapel[-1]
         if k == "Escape":
-            self.schliessen()
+            if len(self._stapel) > 1:
+                self._stapel_schliessen(len(self._stapel) - 1)
+            else:
+                self.schliessen()
         elif k == "Down":
             self._weiter(+1)
         elif k == "Up":
             self._weiter(-1)
         elif k == "Right":
-            self.oeffnen((self._offen + 1) % len(self._eintraege), tastatur=True)
+            z = p.zeilen[p.aktiv] if p.aktiv is not None and p.aktiv < len(p.zeilen) else None
+            if z is not None and z[2] != "disabled" and self._ist_cascade(z):
+                self._sub_oeffnen(p, p.aktiv)
+                if len(self._stapel) > p.ebene + 1:
+                    self._weiter(+1)
+            elif len(self._stapel) == 1:
+                self.oeffnen((self._offen + 1) % len(self._eintraege), tastatur=True)
         elif k == "Left":
-            self.oeffnen((self._offen - 1) % len(self._eintraege), tastatur=True)
+            if len(self._stapel) > 1:
+                self._stapel_schliessen(len(self._stapel) - 1)
+            else:
+                self.oeffnen((self._offen - 1) % len(self._eintraege), tastatur=True)
         elif k in ("Return", "KP_Enter"):
-            self._ausloesen(self._aktiv)
+            if p.aktiv is not None:
+                z = p.zeilen[p.aktiv]
+                if self._ist_cascade(z) and z[2] != "disabled":
+                    self._sub_oeffnen(p, p.aktiv)
+                    if len(self._stapel) > p.ebene + 1:
+                        self._weiter(+1)
+                else:
+                    self._ausloesen(p, p.aktiv)
         else:
             return
         return "break"
