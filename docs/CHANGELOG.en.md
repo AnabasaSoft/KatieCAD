@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.2
+- New: **colour scheme** (View > Colour scheme): Violet (default), Black and Light for menus, bars, side bars and dialogs; applied at once and remembered
 - New: **merge 3D bodies** (menu 3D, `3DVERSCHMELZEN`, right-click): several bodies become one body by boolean union, inner edges and overlaps disappear, holes are kept, saved with the project, can be merged again with further bodies
 - New: **Manufacturer field `MAN`** in the device mask (order IND, MAN, TYP, PER, REF); *Manufacturer* column in the device list; the parts list uses MAN (otherwise the parts catalogue) and keeps the same type from different manufacturers apart. All symbols get MAN via `tools/symbole_man_ergaenzen.py`
 - New: **Hide hidden edges** in the 3D view (button in the 3D bar): bodies look solid, edges behind them disappear, cabinets read unambiguously; a cabinet without a door is open at the front (mounting plate visible)

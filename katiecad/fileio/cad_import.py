@@ -27,7 +27,7 @@ import tempfile
 from collections import Counter
 
 from katiecad.model.core import (
-    FARBEN, Layer, Linie, Kreis, Bogen, Polylinie, Text, Schraffur,
+    FARBEN, ZEICHEN_FARBE, Layer, Linie, Kreis, Bogen, Polylinie, Text, Schraffur,
 )
 
 try:
@@ -86,12 +86,12 @@ def _hex(rgb):
 def _aci_hex(aci):
     """ACI -> hex. 7 (white/black) -> application default colour."""
     if aci == 7:
-        return FARBEN["cyan"]
+        return ZEICHEN_FARBE
     try:
         from ezdxf import colors
         return _hex(colors.aci2rgb(int(aci)))
     except Exception:
-        return FARBEN["cyan"]
+        return ZEICHEN_FARBE
 
 
 def _linientyp_name(name):
@@ -166,7 +166,7 @@ class DxfImporter:
                 self._layer_lt[name] = _linientyp_name(l.dxf.get("linetype", ""))
                 if name in self.layers:
                     continue
-                farbe = FARBEN["cyan"]
+                farbe = ZEICHEN_FARBE
                 try:
                     if l.dxf.hasattr("true_color"):
                         farbe = _hex(ezdxf.colors.int2rgb(l.dxf.true_color))
@@ -189,7 +189,7 @@ class DxfImporter:
 
     def _sicher_layer(self, name):
         if name not in self.layers:
-            self.layers[name] = Layer(name, FARBEN["cyan"], 0.35)
+            self.layers[name] = Layer(name, ZEICHEN_FARBE, 0.35)
             self.neue_layer.append(name)
 
     # ---- Common attributes -------------------------------------
@@ -200,7 +200,7 @@ class DxfImporter:
         except Exception:
             pass
         self._sicher_layer(layer)
-        kw = {"layer": layer, "farbe": FARBEN["cyan"],
+        kw = {"layer": layer, "farbe": ZEICHEN_FARBE,
               "linientyp": self._layer_lt.get(layer, "Volllinie (schmal)")}
         try:
             lt = e.dxf.get("linetype", "BYLAYER")

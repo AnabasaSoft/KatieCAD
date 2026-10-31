@@ -18,7 +18,7 @@ import datetime
 import json
 import os
 
-from katiecad.model.core import (Text, Linie, Rechteck, FARBEN,
+from katiecad.model.core import (Text, Linie, Rechteck, FARBEN, ZEICHEN_FARBE,
                                  ZEICHNUNGSFORMATE)
 from katiecad.model import titleblock as TB
 from katiecad.common.i18n import tr
@@ -209,9 +209,9 @@ def spalten_ordner(programm_ordner, projekt_ordner=None):
 def _rahmen(fmt=FORMAT):
     b, h = ZEICHNUNGSFORMATE[fmt]
     aussen, innen = TB.frame_rects(b, h)
-    dick = {"layer": "0", "farbe": FARBEN["cyan"], "linientyp": "Volllinie (breit)",
+    dick = {"layer": "0", "farbe": ZEICHEN_FARBE, "linientyp": "Volllinie (breit)",
             "eig_farbe": True, "staerke": 0.7}
-    duenn = {"layer": "0", "farbe": FARBEN["cyan"], "linientyp": "Volllinie (schmal)",
+    duenn = {"layer": "0", "farbe": ZEICHEN_FARBE, "linientyp": "Volllinie (schmal)",
              "eig_farbe": True, "staerke": 0.35}
     return aussen, innen, [Rechteck(*aussen, **dick), Rechteck(*innen, **duenn)]
 

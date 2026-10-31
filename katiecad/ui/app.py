@@ -62,7 +62,7 @@ from katiecad.model.geom2d import spline_punkte
 from katiecad.ui.sidebar import Seitenleiste
 from katiecad.ui.widgets import FlatButton, farb_swatch, Tooltip
 from katiecad.model.core import (
-    FARBEN, EINHEITEN, ZEICHNUNGSFORMATE, MASSSTAEBE, LINIENTYPEN,
+    FARBEN, FARBSCHEMEN, FARBSCHEMA, farbschema_anwenden, EINHEITEN, ZEICHNUNGSFORMATE, MASSSTAEBE, LINIENTYPEN,
     schrift_fett, schrift_name, schrift_setzen, schriftarten_aktualisieren, SCHRIFTEN,
     RASTER_GROESSEN, BG_PRESETS, SCHRIFTARTEN, LINIENSTAERKEN,
     GRIFF_RADIUS, MIN_VP_GROESSE, PASTE_OFFSET_MM,
@@ -251,6 +251,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self.root.bind = _bind_mac
         self.root.title("KatieCAD")
         self.root.geometry("1500x950")
+        farbschema_anwenden(lade_konfiguration().get("farbschema", "violett"))
         self.root.configure(bg=FARBEN["bg_dunkel"])
 
         _cfg = lade_konfiguration()
@@ -555,6 +556,85 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     # --------------------------------------------------------
     # Language switching
     # --------------------------------------------------------
+    # --------------------------------------------------------
+    # Colour scheme
+    # --------------------------------------------------------
+    _FARB_OPTIONEN = ("background", "foreground", "activebackground", "activeforeground",
+                      "highlightbackground", "highlightcolor", "selectbackground",
+                      "selectforeground", "insertbackground", "troughcolor",
+                      "disabledforeground", "selectcolor")
+
+    def farbschema_wechseln(self, name):
+        """Switches the colour scheme of the program (menus, side bars, dialogs) at once and
+        remembers it in the configuration. The drawing background is not touched."""
+        if name not in FARBSCHEMEN or name == FARBSCHEMA["aktuell"]:
+            return
+        mapping = farbschema_anwenden(name)
+        daten = lade_konfiguration()
+        daten["farbschema"] = name
+        speichere_konfiguration(daten)
+        _style_setup(self.root)
+        self.root.configure(bg=FARBEN["bg_dunkel"])
+        self._widgets_umfaerben(mapping)
+        self._retranslate_ui()
+        v = getattr(self, "_ansicht3d", None)
+        if v is not None:
+            try:
+                v.zeichne()
+            except Exception:
+                pass
+        self.status.set(tr("msg.farbschema", name=tr("menu.farbschema." + name)))
+
+    def _widgets_umfaerben(self, mapping):
+        """Re-colours all existing tk widgets: old scheme colour -> new scheme colour. The
+        backgrounds of the two drawing areas (project data) stay as they are."""
+        rgb = {}
+        for alt, neu in mapping.items():
+            try:
+                rgb[self.root.winfo_rgb(alt)] = neu
+            except tk.TclError:
+                pass
+        zeichenflaechen = {str(self.canvas)}
+        v = getattr(self, "_ansicht3d", None)
+        if v is not None and getattr(v, "canvas", None) is not None:
+            zeichenflaechen.add(str(v.canvas))
+
+        def neu_von(wert):
+            try:
+                return rgb.get(self.root.winfo_rgb(wert))
+            except tk.TclError:
+                return None
+
+        stapel = [self.root]
+        while stapel:
+            w = stapel.pop()
+            stapel.extend(w.winfo_children())
+            if isinstance(w, ttk.Widget):
+                continue
+            for attr in ("_bg", "_fg", "_abg", "_afg"):          # FlatButton keeps its colours
+                if hasattr(w, attr):
+                    n = neu_von(getattr(w, attr))
+                    if n:
+                        setattr(w, attr, n)
+            if hasattr(w, "_anwenden"):
+                try:
+                    w._anwenden()
+                except tk.TclError:
+                    pass
+            for opt in self._FARB_OPTIONEN:
+                if str(w) in zeichenflaechen and opt == "background":
+                    continue
+                try:
+                    cur = w.cget(opt)
+                except tk.TclError:
+                    continue
+                n = neu_von(cur) if cur else None
+                if n:
+                    try:
+                        w.configure(**{opt: n})
+                    except tk.TclError:
+                        pass
+
     def sprache_wechseln(self, code):
         if code not in TEXTE or code == SPRACHE["aktuell"]:
             return
@@ -1246,6 +1326,14 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         m_ansicht.add_separator()
         m_ansicht.add_command(label=tr("menu.ansicht.schriften"),
                               command=self.schriften_verwalten)
+        m_farbe = tk.Menu(m_ansicht, tearoff=0, bg=FARBEN["bg_mittel"], fg=FARBEN["cyan"],
+                          activebackground=FARBEN["cyan"],
+                          activeforeground=FARBEN["bg_dunkel"])
+        for _n in FARBSCHEMEN:
+            m_farbe.add_command(
+                label=("\u25cf " if _n == FARBSCHEMA["aktuell"] else "    ") + tr("menu.farbschema." + _n),
+                command=lambda n=_n: self.farbschema_wechseln(n))
+        m_ansicht.add_cascade(label=tr("menu.ansicht.farbschema"), menu=m_farbe)
         menubar.add_cascade(label=tr("menu.ansicht"), menu=m_ansicht)
 
         # Blocks

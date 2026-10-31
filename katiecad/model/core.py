@@ -46,6 +46,41 @@ FARBEN = {
     "select_fg":    "#e2d4ff",
 }
 
+# Colour of drawing content that has to look the same in every colour scheme (title block lines,
+# imported entities without colour ...). It is not part of the scheme.
+ZEICHEN_FARBE = "#c29bff"
+
+# Colour schemes of the program (menus, side bars, dialogs). "violett" is the default.
+FARBSCHEMEN = {
+    "violett": dict(FARBEN),
+    "schwarz": {
+        "bg_dunkel": "#000000", "bg_mittel": "#141414", "bg_hell": "#202020",
+        "bg_hover": "#303030", "rand": "#454545", "text": "#dcdcdc", "text_dim": "#8a8a8a",
+        "text_hell": "#ffffff", "cyan": "#7ccbff", "cyan_dunkel": "#2f6f9f",
+        "magenta": "#ff2d95", "gruen": "#39ff14", "gelb": "#ffe600", "rot": "#ff1744",
+        "orange": "#ff9500", "select_bg": "#1d3a52", "select_fg": "#e6f4ff",
+    },
+    "hell": {
+        "bg_dunkel": "#f7f7fa", "bg_mittel": "#ebebf0", "bg_hell": "#ffffff",
+        "bg_hover": "#d9d9e3", "rand": "#b4b4c4", "text": "#222230", "text_dim": "#6a6a7c",
+        "text_hell": "#000000", "cyan": "#1f4fa8", "cyan_dunkel": "#b9cdf2",
+        "magenta": "#c2185b", "gruen": "#1b8a00", "gelb": "#a67c00", "rot": "#c62828",
+        "orange": "#d56a00", "select_bg": "#c7d7f5", "select_fg": "#10244d",
+    },
+}
+FARBSCHEMA = {"aktuell": "violett"}
+
+
+def farbschema_anwenden(name):
+    """Makes `name` the active scheme (FARBEN is changed in place, so every module sees it).
+    Returns {old colour: new colour} (lower case hex) for re-colouring existing widgets."""
+    if name not in FARBSCHEMEN:
+        name = "violett"
+    alt = dict(FARBEN)
+    FARBEN.update(FARBSCHEMEN[name])
+    FARBSCHEMA["aktuell"] = name
+    return {alt[k].lower(): FARBEN[k].lower() for k in FARBEN if k in alt}
+
 
 # ============================================================
 # Constants

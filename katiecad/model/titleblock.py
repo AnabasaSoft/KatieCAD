@@ -36,7 +36,7 @@ import datetime
 
 from katiecad.model.core import (
     BlockReferenz, Viewport, Linie, Rechteck, Text, AttributDefinition,
-    FARBEN, massstab_text,
+    FARBEN, ZEICHEN_FARBE, massstab_text,
 )
 
 PREFIX = "TITLEBLOCK:"
@@ -259,9 +259,9 @@ def default_elements(lang="en"):
          "sheet": "Blatt" if de else "Sheet",
          "scale": "Maßstab" if de else "Scale",
          "page": "Seite" if de else "Page"}
-    thick = {"layer": "0", "farbe": FARBEN["cyan"], "eig_farbe": True,
+    thick = {"layer": "0", "farbe": ZEICHEN_FARBE, "eig_farbe": True,
              "linientyp": "Volllinie (breit)", "staerke": 0.7}
-    thin = {"layer": "0", "farbe": FARBEN["cyan"], "eig_farbe": True,
+    thin = {"layer": "0", "farbe": ZEICHEN_FARBE, "eig_farbe": True,
             "linientyp": "Volllinie (schmal)", "staerke": 0.35}
     el = [Rechteck(-180, 0, 0, 40, **thick),
           Linie(-180, 20, 0, 20, **thin),

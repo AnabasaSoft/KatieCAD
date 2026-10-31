@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.2
+- Neu: **Farbschema** (Ansicht › Farbschema): Violett (Standard), Schwarz und Hell für Menüs, Leisten, Seitenleisten und Dialoge; wirkt sofort und wird gespeichert
 - Neu: **3D-Körper verschmelzen** (Menü 3D, `3DVERSCHMELZEN`, Rechtsklick): mehrere Körper per Boolescher Vereinigung zu einem Körper, Innenkanten und Überlappungen verschwinden, Bohrungen bleiben, wird gespeichert, lässt sich erneut mit weiteren Körpern verschmelzen
 - Neu: **Hersteller-Feld `MAN`** in der Gerätemaske (Reihenfolge IND, MAN, TYP, PER, REF); Spalte *Hersteller* in der Geräteliste; die Stückliste nutzt MAN (sonst den Bauteilkatalog) und trennt gleiche Typen verschiedener Hersteller. Alle Symbole bekommen MAN über `tools/symbole_man_ergaenzen.py`
 - Neu: **Verdeckte Kanten ausblenden** in der 3D-Ansicht (Knopf in der 3D-Leiste): Körper wirken massiv, Kanten dahinter verschwinden, Schränke sind eindeutig lesbar; Schrank ohne Tür ist vorne offen (Montageplatte sichtbar)
