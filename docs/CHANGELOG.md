@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.2
+- Neu: Info-Fenster zeigt im **hellen Farbschema** den Schriftzug mit dunklem „Katie“ (Datei `KatieCAD_Banner_dunkel.png`); Violett und Schwarz behalten den hellen Schriftzug
 - Änderung: **Zeichnungshintergrund (Modell und Layout) ist eine Programmeinstellung** und steht nicht mehr in der Zeichnungs-/Projektdatei; fremde Dateien öffnen mit dem eigenen Hintergrund, alte Dateien bleiben lesbar
 - Neu: **Farbschema** (Ansicht › Farbschema): Violett (Standard), Schwarz und Hell für Menüs, Leisten, Seitenleisten und Dialoge; wirkt sofort und wird gespeichert
 - Neu: **3D-Körper verschmelzen** (Menü 3D, `3DVERSCHMELZEN`, Rechtsklick): mehrere Körper per Boolescher Vereinigung zu einem Körper, Innenkanten und Überlappungen verschwinden, Bohrungen bleiben, wird gespeichert, lässt sich erneut mit weiteren Körpern verschmelzen

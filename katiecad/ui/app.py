@@ -5355,7 +5355,11 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     def _info_banner(self, eltern, breite=260):
         """KatieCAD lettering (file KatieCAD_Banner.png next to KatieCAD.png) instead of the
         plain title text of the About window. -> True if it was shown."""
-        pfad = _symbol_datei("KatieCAD_Banner.png")
+        # light scheme: lettering with dark "Katie"; otherwise (violet, black) the light one
+        pfad = None
+        if not ist_dunkel(FARBEN["bg_mittel"]):
+            pfad = _symbol_datei("KatieCAD_Banner_dunkel.png")
+        pfad = pfad or _symbol_datei("KatieCAD_Banner.png")
         if pfad is None:
             return False
         bild = None

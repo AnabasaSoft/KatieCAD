@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.2
+- New: in the **light colour scheme** the About window shows the lettering with a dark "Katie" (file `KatieCAD_Banner_dunkel.png`); violet and black keep the light lettering
 - Change: **drawing background (model and layout) is a program setting** and no longer stored in the drawing/project file; foreign files open with your own background, old files stay readable
 - New: **colour scheme** (View > Colour scheme): Violet (default), Black and Light for menus, bars, side bars and dialogs; applied at once and remembered
 - New: **merge 3D bodies** (menu 3D, `3DVERSCHMELZEN`, right-click): several bodies become one body by boolean union, inner edges and overlaps disappear, holes are kept, saved with the project, can be merged again with further bodies
