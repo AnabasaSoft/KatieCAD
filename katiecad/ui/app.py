@@ -283,6 +283,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self.layouts = [Layout("Layout1", Layout.STANDARD_FORMAT,
                                "#1c132d")]
         self.aktives_layout = 0
+        # drawing backgrounds are a setting of the program, not part of the drawing file
+        _cfg_bg = lade_konfiguration()
+        self._bg_layout = self._farbe_gueltig(_cfg_bg.get("bg_layout"), Layout.STANDARD_BG)
         self.ansicht = tk.StringVar(value="modell")
 
         self.aktives_werkzeug = tk.StringVar(value="auswahl")
@@ -299,7 +302,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self.text_winkel = tk.DoubleVar(value=0.0)
         self.text_schriftart = tk.StringVar(value="Arial")
 
-        self.bg_modell = "#120a1f"
+        self.bg_modell = self._farbe_gueltig(_cfg_bg.get("bg_modell"), "#120a1f")
 
         self.view_modell = {"zoom": 1.5, "ox": 100, "oy": 700}
 
@@ -496,13 +499,25 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     def layout_format(self, wert):
         self.layouts[self.aktives_layout].format = wert
 
+    @staticmethod
+    def _farbe_gueltig(wert, standard):
+        """#rrggbb from the configuration, otherwise the default."""
+        if isinstance(wert, str) and len(wert) == 7 and wert.startswith("#"):
+            try:
+                int(wert[1:], 16)
+                return wert
+            except ValueError:
+                pass
+        return standard
+
     @property
     def bg_layout(self):
-        return self.layouts[self.aktives_layout].bg
+        """Background of the layout sheets: setting of the program for all layouts."""
+        return self._bg_layout
 
     @bg_layout.setter
     def bg_layout(self, wert):
-        self.layouts[self.aktives_layout].bg = wert
+        self._bg_layout = wert
 
     @property
     def view(self):
@@ -2409,6 +2424,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self.bg_modell = hexc
         else:
             self.bg_layout = hexc
+        daten = lade_konfiguration()               # remembered in the program, not in the file
+        daten["bg_modell" if bereich == "modell" else "bg_layout"] = hexc
+        speichere_konfiguration(daten)
         aktuell_layout = self._ist_layout()
         if (bereich == "modell" and not aktuell_layout) or \
            (bereich == "layout" and aktuell_layout):
@@ -8140,7 +8158,6 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self.layers = self._standard_layers()
         self.einheit.set(daten.get("einheit", "mm"))
         self.massstab.set(daten.get("massstab", "1:1"))
-        self.bg_modell = daten.get("bg_modell", "#120a1f")
         self.raster_mm.set(daten.get("raster_mm", 5.0))
         self.fang_mm.set(daten.get("fang_mm", 5.0))
         for ld in daten.get("layers", []):
@@ -8277,14 +8294,14 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         return {
             "einheit": self.einheit.get(),
             "massstab": self.massstab.get(),
-            "bg_modell": self.bg_modell,
+            "bg_modell": "#120a1f",            # background is a program setting (not saved)
             "layout_format": self.layout_format,
-            "bg_layout": self.layouts[0].bg,
+            "bg_layout": Layout.STANDARD_BG,
             "raster_mm": self._zahl(self.raster_mm, 5.0),
             "fang_mm": self._zahl(self.fang_mm, 5.0),
             "layers": [l.to_dict() for l in self.layers.values()],
             "elemente": [e.to_dict() for e in self.elemente],
-            "layouts": [l.to_dict() for l in self.layouts],
+            "layouts": [dict(l.to_dict(), bg=Layout.STANDARD_BG) for l in self.layouts],
             "aktives_layout": self.aktives_layout,
             "ansicht": self.ansicht.get(),
             "sprache": SPRACHE["aktuell"],
@@ -8300,7 +8317,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         taken from the current sheet (new sheet in a project) or set to
         defaults (first sheet)."""
         if einstellungen_uebernehmen:
-            fmt, bg_l = self.layout_format, self.bg_layout
+            fmt, bg_l = self.layout_format, Layout.STANDARD_BG
             layers = [l.to_dict() for l in self.layers.values()]
         else:
             fmt, bg_l = Layout.STANDARD_FORMAT, Layout.STANDARD_BG
@@ -8308,7 +8325,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         return {
             "einheit": self.einheit.get(),
             "massstab": self.massstab.get(),
-            "bg_modell": self.bg_modell,
+            "bg_modell": "#120a1f",
             "layout_format": fmt,
             "bg_layout": bg_l,
             "raster_mm": self._zahl(self.raster_mm, 5.0),
@@ -10104,7 +10121,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             basis = self._leere_zeichnung_daten(einstellungen_uebernehmen=True)
             neu_aktiv = ANW.ins_projekt(p, vorne, hinten, basis,
                                         self._json_atomar_schreiben,
-                                        bg_layout=self.bg_layout)
+                                        bg_layout=Layout.STANDARD_BG)
             p.speichern()
         except Exception as e:           # also unexpected errors: never fail silently
             import traceback
