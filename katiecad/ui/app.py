@@ -16,7 +16,8 @@ NEW (step 8 - HATCHING):
 """
 
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, colorchooser, simpledialog
+from tkinter import ttk, filedialog, colorchooser, simpledialog
+from katiecad.ui import meldung as messagebox        # message boxes in the program design
 import math, json, re, zlib
 from copy import deepcopy
 import os, sys, tempfile, subprocess, datetime, time
@@ -5444,19 +5445,16 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         de = SPRACHE["aktuell"] == "de"
         if self._dirty:
             antwort = messagebox.askyesnocancel(
-                ("Neu" if de else "New"),
-                ("Die Zeichnung wurde geändert.\n\nMöchten Sie vor dem Löschen "
-                 "speichern?" if de else
-                 "The drawing has been modified.\n\nSave before deleting?"))
+                ("Neue Zeichnung" if de else "New drawing"),
+                ("Die Zeichnung wurde geändert.\n\nMöchten Sie die Änderungen speichern, "
+                 "bevor eine neue Zeichnung angelegt wird?" if de else
+                 "The drawing has been modified.\n\nDo you want to save the changes "
+                 "before a new drawing is created?"), parent=self.root)
             if antwort is None:
                 return
             if antwort:
                 if not self.speichern():
                     return
-        elif not messagebox.askyesno(
-                ("Neu" if de else "New"),
-                ("Alle Elemente löschen?" if de else "Delete all elements?")):
-            return
         self.elemente = []
         self.layouts = [Layout("Layout1", Layout.STANDARD_FORMAT, "#1c132d")]
         self.aktives_layout = 0

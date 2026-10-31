@@ -14,7 +14,8 @@ import math
 import os
 import sys
 import tkinter as tk
-from tkinter import ttk, colorchooser, messagebox, filedialog
+from tkinter import ttk, colorchooser, filedialog
+from katiecad.ui import meldung as messagebox
 
 from katiecad.common.i18n import tr, SPRACHE
 from katiecad.electrical import suchen as SU

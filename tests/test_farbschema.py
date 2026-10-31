@@ -43,6 +43,6 @@ core.farbschema_anwenden("unbekannt")
 check(core.FARBSCHEMA["aktuell"] == "violett" and core.FARBEN == S["violett"], "unbekannt -> Violett")
 check(core.ZEICHEN_FARBE == "#c29bff", "Zeichenfarbe bleibt fest")
 for k in ("menu.ansicht.farbschema", "menu.farbschema.violett", "menu.farbschema.schwarz",
-          "menu.farbschema.hell", "msg.farbschema"):
+          "menu.farbschema.hell", "msg.farbschema", "dlg.ja", "dlg.nein"):
     check(k in I.TEXTE["de"] and k in I.TEXTE["en"], k)
 print(f"test_farbschema - {ok} Checks bestanden")

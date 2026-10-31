@@ -16,7 +16,7 @@ katiecad/ui/aendern.py - Change length, align, manipulator (mixin of CadApp).
 
 import math
 import tkinter as tk
-from tkinter import messagebox
+from katiecad.ui import meldung as messagebox
 
 from katiecad.common.i18n import tr, SPRACHE
 from katiecad.model.core import FARBEN, Linie, UI_SCHRIFT, Viewport

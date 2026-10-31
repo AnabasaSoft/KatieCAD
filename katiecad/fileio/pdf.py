@@ -9,7 +9,7 @@ NEW (electrical): cross references, connection point labels, multi-page PDFs.
 """
 
 import math, os, sys, tempfile, subprocess
-from tkinter import messagebox
+from katiecad.ui import meldung as messagebox
 
 from katiecad.model.core import (
     ZEICHNUNGSFORMATE, MASSSTAEBE, LINIENTYPEN, PdfSeite,

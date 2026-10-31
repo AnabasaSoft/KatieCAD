@@ -15,7 +15,8 @@ import math
 import re
 from copy import deepcopy
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
+from katiecad.ui import meldung as messagebox
 
 from katiecad.common.i18n import tr
 from katiecad.model.core import (FARBEN, UI_SCHRIFT, Koerper3D, Gruppe3D, Skizze3D, Bemassung3D, Text3D, Viewport,
