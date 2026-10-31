@@ -5442,19 +5442,45 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                         f"It is located here:\n{pf}"), parent=self.root)
 
     def neu(self):
+        """File > New: empties the drawing (in a project: the current sheet). It never happens
+        without asking."""
         de = SPRACHE["aktuell"] == "de"
+        p = self.projekt
+        blatt = ""
+        if p is not None and p.blaetter:
+            blatt = p.blaetter[p.aktiv].name
         if self._dirty:
+            if p is not None:
+                frage = (f"Das Blatt \u201e{blatt}\u201c wurde geändert.\n\nMöchten Sie die Änderungen "
+                         f"speichern? Danach wird das Blatt geleert." if de else
+                         f"The sheet \u201c{blatt}\u201d has been modified.\n\nDo you want to save "
+                         f"the changes? The sheet is emptied afterwards.")
+            else:
+                frage = ("Die Zeichnung wurde geändert.\n\nMöchten Sie die Änderungen speichern, "
+                         "bevor eine neue Zeichnung angelegt wird?" if de else
+                         "The drawing has been modified.\n\nDo you want to save the changes "
+                         "before a new drawing is created?")
             antwort = messagebox.askyesnocancel(
-                ("Neue Zeichnung" if de else "New drawing"),
-                ("Die Zeichnung wurde geändert.\n\nMöchten Sie die Änderungen speichern, "
-                 "bevor eine neue Zeichnung angelegt wird?" if de else
-                 "The drawing has been modified.\n\nDo you want to save the changes "
-                 "before a new drawing is created?"), parent=self.root)
+                ("Neue Zeichnung" if de else "New drawing"), frage, parent=self.root)
             if antwort is None:
                 return
             if antwort:
                 if not self.speichern():
                     return
+        else:
+            if p is not None:
+                frage = (f"Das Blatt \u201e{blatt}\u201c wird geleert und durch ein leeres Blatt "
+                         f"ersetzt.\n\nFortfahren?" if de else
+                         f"The sheet \u201c{blatt}\u201d is emptied and replaced by an empty "
+                         f"sheet.\n\nContinue?")
+            else:
+                frage = ("Die aktuelle Zeichnung wird geschlossen und eine neue, leere Zeichnung "
+                         "angelegt.\n\nFortfahren?" if de else
+                         "The current drawing is closed and a new, empty drawing is created."
+                         "\n\nContinue?")
+            if not messagebox.askyesno(("Neue Zeichnung" if de else "New drawing"), frage,
+                                       default=messagebox.NO, parent=self.root):
+                return
         self.elemente = []
         self.layouts = [Layout("Layout1", Layout.STANDARD_FORMAT, "#1c132d")]
         self.aktives_layout = 0
