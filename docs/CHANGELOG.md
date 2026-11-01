@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.2
+- Neu: **Zwischen Viewports wechseln**: in der Viewport-Ansicht wechselt ein Doppelklick in einen anderen Viewport direkt dorthin (wie in AutoCAD), ein Doppelklick außerhalb verlässt die Viewport-Ansicht; so lassen sich mehrere Ansichten desselben 3D-Modells im Layout einzeln einstellen
 - Änderung: **Linux-Paket (.deb) mit vollständigen Programminfos**: Beschreibung „2D/3D-CAD für Elektrotechnik“, Open Source unter MIT-Lizenz (AppStream-Metadaten, Copyright-Datei), Projektseite GitHub, Kategorie Elektronik, installierte Größe; dieselben Metadaten im AppImage; Metadaten verweisen auf den Paketnamen (`katiecad`), damit die Paketverwaltung Name, Icon und Lizenz zuordnet; Icon in den AppStream-Metadaten eingetragen; das Paket aktualisiert den Software-Katalog bei Installation/Entfernung selbst
 - Neu: **Klemmen (und Geräte-Masken) mit „anzeigen“-Haken je Feld** (IND, MAN, TYP, PER, NUM): ausgeblendete Felder bleiben für Listen und Auswertung erhalten, erscheinen aber nicht in der Zeichnung; die übrigen rücken ohne Lücke nach
 - Fix: **Projekt als DXF exportieren** brach mit „Es konnte keine Seite erzeugt werden“ ab (seit den Schriftarten in 1.1.1 bekam die DXF-Seite Schrift-Parameter, die sie nicht kannte); die Meldung nennt jetzt außerdem den eigentlichen Grund

@@ -3178,9 +3178,10 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self.redraw()
         self._viewport_modus_anzeige_aktualisieren()
         de = SPRACHE["aktuell"] == "de"
-        self.status.set(("Viewport aktiviert. ESC oder Layout-Ansicht zum "
-                         "Verlassen." if de else
-                         "Viewport activated. ESC or Layout view to leave."))
+        self.status.set(("Viewport aktiviert. Doppelklick in einen anderen "
+                         "Viewport wechselt, ESC oder Layout-Ansicht verlässt." if de else
+                         "Viewport activated. Double click into another viewport "
+                         "to switch, ESC or Layout view to leave."))
 
     def _vp_eigenschaften(self, vp):
         vorher = self._zustand()
@@ -4650,6 +4651,13 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             return
         kind, vp = self._ctx()
         if kind == "vp":
+            # like AutoCAD: double click into another viewport switches to it,
+            # double click outside every viewport leaves the viewport view
+            ziel = self._viewport_unter_maus(event)
+            if ziel is None:
+                self._vp_deaktivieren()
+            elif ziel is not self._aktiver_viewport:
+                self._vp_aktivieren(ziel)
             return
         x_mm, y_mm = self.px_to_mm(event.x, event.y)
         el = self._element_unter_maus(x_mm, y_mm, 8 / self.view["zoom"])

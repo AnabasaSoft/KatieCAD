@@ -490,4 +490,29 @@ _e = {"yaw": -45.0, "pitch": 35.264}
 check(not a._vp_winkel_einrasten(_e) and _e["yaw"] == -45.0, "Isometrie bleibt unveraendert")
 _e = {"yaw": 359.0, "pitch": 88.0}
 check(a._vp_winkel_einrasten(_e) and _e == {"yaw": 0.0, "pitch": 90.0}, "Viewport-Winkel rastet auf Oben ein")
+# --- switch between viewports by double click while a viewport is active ---
+class _VApp(A.CadApp):
+    layout_elemente = []
+    def __init__(s): pass
+    def _ist_layout(s): return True
+    def px_to_mm(s, x, y): return (x, y)
+    def redraw(s, *x, **k): pass
+    def _viewport_modus_anzeige_aktualisieren(s): pass
+class _Var:  # noqa
+    def set(s, v): s.v = v
+    def get(s): return getattr(s, "v", None)
+class _Ev:  # noqa
+    def __init__(s, x, y): s.x, s.y = x, y
+_v1 = core.Viewport(10, 10, 100, 100); _v2 = core.Viewport(150, 10, 100, 100)
+_VApp.layout_elemente = [_v1, _v2]
+_va = _VApp()
+_va._op = None; _va._warte_auf_blockpunkt = False; _va._paste_aktiv = False
+_va._pts = []; _va._viewport_modus = False; _va._vp_fenster = None
+_va._aktiver_viewport = None; _va._vp_modus_var = _Var(); _va.status = _Var()
+_va.aktives_werkzeug = _Var(); _va.aktives_werkzeug.set("auswahl")
+_va._vp_aktivieren(_v1)
+_va.on_doppelklick(_Ev(200, 50))
+check(_va._aktiver_viewport is _v2 and _v2.aktiv and not _v1.aktiv, "Doppelklick in anderen Viewport wechselt")
+_va.on_doppelklick(_Ev(500, 500))
+check(_va._aktiver_viewport is None and not _v2.aktiv, "Doppelklick ausserhalb verlaesst Viewport")
 print(f"test_3d - {ok} Checks bestanden")
