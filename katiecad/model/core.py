@@ -1018,6 +1018,7 @@ class Element:
     def to_dict(self):
         d = self.__dict__.copy()
         d.pop("id", None)
+        d.pop("_ohne_tuer", None)          # runtime cache of the viewport "hide doors"
         return d
 
     def bbox(self):
@@ -4224,7 +4225,7 @@ class Gruppe3D(Element):
             t.spiegeln(ax, ay, bx, by)
 
     def to_dict(self):
-        d = {k: v for k, v in self.__dict__.items() if k not in ("id", "teile")}
+        d = {k: v for k, v in self.__dict__.items() if k not in ("id", "teile", "_ohne_tuer")}
         d["teile"] = [t.to_dict() for t in self.teile]
         return d
 

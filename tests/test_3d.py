@@ -534,4 +534,8 @@ _va2 = _VApp(); _va2._snapshot = lambda: None
 _va2._vp_3d_tueren(_vt); check(_vt.ansicht3d.get("tueren_aus") is True, "Tueren ausblenden gesetzt")
 _va2._vp_3d_tueren(_vt); check("tueren_aus" not in _vt.ansicht3d, "Tueren wieder eingeblendet")
 check(core.Viewport(**{k: v for k, v in _vt.to_dict().items() if k != "typ"}).ansicht3d is not None, "Viewport bleibt serialisierbar")
+_gs.to_dict(); _S3.ohne_tueren([_gs], True)
+_dd = _json.dumps(_gs.to_dict(), default=str)
+check("_ohne_tuer" not in _dd, "Gruppe3D.to_dict enthaelt keinen Tuer-Cache (JSON/Speichern)")
+_json.dumps(_gs.to_dict())
 print(f"test_3d - {ok} Checks bestanden")
