@@ -1453,8 +1453,11 @@ class Bemassung(Element):
                  richtung="ausgerichtet", text_override="",
                  tx=None, ty=None, hoehe=2.5, pfeil=2.5, dez=2,
                  offset=10.0, offset_x=0.0, offset_y=0.0,
-                 text_offset_x=0.0, text_offset_y=0.0, x3=None, y3=None, **kw):
+                 text_offset_x=0.0, text_offset_y=0.0, x3=None, y3=None,
+                 modell_skala=1.0, **kw):
         super().__init__("bemassung", **kw)
+        # layout: paper mm per model mm of the viewport the dimension was taken in (1 = none)
+        self.modell_skala = float(modell_skala) or 1.0
         self.x1, self.y1, self.x2, self.y2 = x1, y1, x2, y2
         # angle dimension: (x1,y1) = vertex, (x2,y2)/(x3,y3) = points on the
         # two legs, (mx,my) = point on the dimension arc (radius and sector)
@@ -1551,7 +1554,7 @@ class Bemassung(Element):
                 return (self.text_override.replace("<>", s)
                         if "<>" in self.text_override else self.text_override)
             return s
-        s = bem_zahl(self.wert() / faktor, self.dez, komma)
+        s = bem_zahl(self.wert() / faktor / (self.modell_skala or 1.0), self.dez, komma)
         if self.richtung == "radius":
             s = "R" + s
         elif self.richtung == "durchmesser":

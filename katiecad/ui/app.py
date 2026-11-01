@@ -3385,7 +3385,100 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         liste = self._ctx_liste()
         if self.aktuelle_polylinie and self.aktives_werkzeug.get() in ("polylinie", "spline"):
             liste = list(liste) + [Polylinie(list(self.aktuelle_polylinie))]
-        return self._finde_snap_in_liste(liste, x, y, tol, ref)
+        res = self._finde_snap_in_liste(liste, x, y, tol, ref)
+        if res is None and self._ctx()[0] == "layout":
+            res = self._snap_viewports(x, y)             # model content seen through the viewports
+        return res
+
+    def _vp_fang_kandidaten(self):
+        """Snap candidates (3D point, kind) of the whole model; cached until the next redraw."""
+        c = getattr(self, "_vp_fang_cache", None)
+        if c is None:
+            from katiecad.model import szene3d as S3
+            c = S3.fang_kandidaten([el for el in self.elemente
+                                    if not (self.layers.get(el.layer)
+                                            and not self.layers[el.layer].sichtbar)])
+            self._vp_fang_cache = c
+        return c
+
+    def _snap_viewports(self, x, y):
+        """Object snap in the layout on the content of the viewports (no need to activate them):
+        2D model elements (all snap kinds incl. intersections) and 3D bodies (corners, midpoints,
+        centres of the visible view). x, y = paper mm -> (x, y, kind) or None."""
+        from katiecad.model import szene3d as S3
+        modi = self.osnap_modi
+        zoom = self.view["zoom"]
+        tol = 12.0 / zoom
+        mpx, mpy = self.mm_to_px(x, y)
+        beste, bw = None, None
+        namen = {"end": "endpunkt", "mitte": "mittelpunkt", "zentrum": "zentrum"}
+        rang = {"zentrum": 0, "end": 1, "mitte": 2}
+        for vp in self.layout_elemente:
+            if not isinstance(vp, Viewport):
+                continue
+            l = self.layers.get(vp.layer)
+            if l and not l.sichtbar:
+                continue
+            if not (vp.x <= x <= vp.x + vp.breite and vp.y <= y <= vp.y + vp.hoehe):
+                continue
+            if not getattr(vp, "ansicht3d", None):
+                mx, my = self._papier_zu_modell(vp, x, y)
+                r = self._finde_snap_in_liste(self.elemente, mx, my, tol / vp.zoom)
+                if r is None:
+                    continue
+                px, py = self._modell_zu_papier(vp, r[0], r[1])
+                if not (vp.x <= px <= vp.x + vp.breite and vp.y <= py <= vp.y + vp.hoehe):
+                    continue
+                d = math.hypot(px - x, py - y)
+                w = (round(d * zoom / 4.0), 3, d)
+                if bw is None or w < bw:
+                    beste, bw = (px, py, r[2]), w
+                continue
+            skala = zoom * vp.zoom
+            vcx, vcy = self.mm_to_px(vp.x + vp.breite / 2, vp.y + vp.hoehe / 2)
+            kam = S3.vp_kamera(vp, skala)
+            treffer = []
+            for p3, art in self._vp_fang_kandidaten():
+                if not modi[namen[art]].get():
+                    continue
+                q = kam.proj(p3, vcx, vcy)
+                if q is None:
+                    continue
+                d = math.hypot(q[0] - mpx, q[1] - mpy)
+                if d <= 12.0:
+                    treffer.append((round(d / 4.0), rang[art], d, q, art))
+            if not treffer:
+                continue
+            treffer.sort(key=lambda t: t[:3])
+            if vp.ansicht3d.get("verdeckt"):               # only points on visible edges
+                cache = self.__dict__.setdefault("_vp_verdeckt_cache", {}).setdefault(id(vp), [])
+                lin, _t = S3.szene_segmente(
+                    self.elemente, kam, vcx, vcy,
+                    lambda el: not (self.layers.get(el.layer) and not self.layers[el.layer].sichtbar),
+                    verdeckt=True, cache=cache)
+                segs = [sg for _el, sg in lin]
+
+                def sichtbar(q):
+                    for (a, b) in segs:
+                        dx, dy = b[0] - a[0], b[1] - a[1]
+                        n = dx * dx + dy * dy
+                        t = 0.0 if n < 1e-12 else max(0.0, min(1.0, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / n))
+                        if math.hypot(a[0] + t * dx - q[0], a[1] + t * dy - q[1]) <= 2.0:
+                            return True
+                    return False
+                treffer = [t for t in treffer if sichtbar(t[3])]
+                if not treffer:
+                    continue
+            t = treffer[0]
+            qx, qy = t[3][0], t[3][1]
+            if not (vp.x <= self.px_to_mm(qx, qy)[0] <= vp.x + vp.breite
+                    and vp.y <= self.px_to_mm(qx, qy)[1] <= vp.y + vp.hoehe):
+                continue
+            px, py = self.px_to_mm(qx, qy)
+            w = (t[0], t[1], t[2])
+            if bw is None or w < bw:
+                beste, bw = (px, py, namen[t[4]]), w
+        return beste
 
     def _zeichne_snap_marker(self, x, y, typ):
         c = self.canvas
@@ -4716,6 +4809,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
 
     def redraw(self):
         c = self.canvas
+        self._vp_fang_cache = None            # snap points of the 3D model are recomputed
         if self._ansicht3d is not None:
             try:
                 self.root.after_idle(self.ansicht3d_aktualisieren)
@@ -6873,6 +6967,15 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                     return (el.cx, el.cy, el.r)
         return None
 
+    def _viewport_ueber_punkten(self, pts):
+        """Viewport of the layout that contains all `pts` (paper mm), else None."""
+        for vp in self.layout_elemente:
+            if (isinstance(vp, Viewport) and all(
+                    vp.x - 1e-6 <= p[0] <= vp.x + vp.breite + 1e-6
+                    and vp.y - 1e-6 <= p[1] <= vp.y + vp.hoehe + 1e-6 for p in pts)):
+                return vp
+        return None
+
     def _bem_element(self, pts, m):
         art = self.bem_art.get()
         daten = self._layer_daten()
@@ -6882,6 +6985,10 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         daten["eig_farbe"] = True
         daten["staerke"] = None
         daten["linientyp"] = "Volllinie (schmal)"
+        if self._ctx()[0] == "layout" and art not in ("winkel", "winkel_linien"):
+            vp = self._viewport_ueber_punkten(pts[:2])
+            if vp is not None and vp.zoom > 0:
+                daten["modell_skala"] = vp.zoom         # shows the model value, not the paper mm
         if art in ("winkel", "winkel_linien"):
             return Bemassung(pts[0][0], pts[0][1], pts[1][0], pts[1][1],
                              x3=pts[2][0], y3=pts[2][1],

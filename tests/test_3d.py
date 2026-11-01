@@ -463,4 +463,8 @@ check("verschieben3d" in IC.NAMEN, "Icon verschieben3d")
 for k in ("d3.modus.verschieben", "d3.modus.kopieren", "d3.msg.verschieben_leer", "d3.msg.verschieben_p2", "d3.msg.verschoben_pkt", "tb.wz.verschieben3d", "d3.ctx.verschieben_bp", "d3.ctx.kopieren_bp"):
     check(k in I.TEXTE["de"] and k in I.TEXTE["en"], k)
 check("d3.vp.verdeckt_kurz" in I.TEXTE["de"] and "d3.vp.verdeckt_kurz" in I.TEXTE["en"], "i18n d3.vp.verdeckt_kurz")
+_bm = core.Bemassung(0, 0, 30, 0, mx=15, my=5, richtung="horizontal", modell_skala=0.1)
+check(_bm.text(1.0, False) == "300.00", "Bemassung modell_skala: Modellwert statt Papier-mm")
+check(core.Bemassung(**{k: v for k, v in _bm.to_dict().items() if k != "typ"}).modell_skala == 0.1, "Bemassung modell_skala Round-Trip")
+check(core.Bemassung(0, 0, 30, 0, mx=15, my=5, richtung="horizontal").text(1.0, False) == "30.00", "Bemassung ohne Skala unveraendert")
 print(f"test_3d - {ok} Checks bestanden")
