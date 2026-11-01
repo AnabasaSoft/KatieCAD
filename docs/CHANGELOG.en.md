@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.2
+- New: **move/copy from point to point in 3D**: click base point (e.g. a corner) and target point, both snap to corners, edge midpoints and centres, with dashed preview; commands V/M/CO and the Edit menu now work in space in the 3D window; new button in the 3D bar
 - New: **view cube and "Hidden" button in the layout**: a selected/active 3D viewport shows the view cube at the top right (face click = standard view, arrows, free rotation) and a button to hide hidden edges; on screen only, not in print/PDF
 - Change: **save questions** for unsaved changes (open, quit, open/create/close project) now name the project and sheet in a project and state that "No" discards the changes
 - New: **message boxes in the design of the program** (colour scheme, Yes/No/Cancel, Y/N keys, Enter/Esc) instead of the system boxes

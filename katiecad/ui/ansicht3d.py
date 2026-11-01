@@ -436,7 +436,7 @@ def _vorzeichen(k):
 
 
 class Ansicht3D(tk.Frame):
-    MODI = ("flaeche", "linie", "kreis", "rechteck", "poly", "bem", "pivot", "text", "messen")
+    MODI = ("flaeche", "linie", "kreis", "rechteck", "poly", "bem", "pivot", "text", "messen", "verschieben")
     SKIZZEN = ("linie", "kreis", "rechteck", "poly")
 
     def __init__(self, app):
@@ -496,6 +496,7 @@ class Ansicht3D(tk.Frame):
         a._befehl_knopf(bar, "mass3d", farbe, self.massdialog)
         ttk.Separator(bar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
         a._befehl_knopf(bar, "manip_pivot", farbe, lambda: self.modus_setzen("pivot"))
+        a._befehl_knopf(bar, "verschieben3d", farbe, lambda: self.punkt_verschieben(False))
         a._befehl_knopf(bar, "drehen3d", farbe, self.drehen_dialog)
         a._befehl_knopf(bar, "abrunden3d", farbe, self.abrunden_dialog)
         ttk.Label(bar, text=tr("d3.wert"), style="Title.TLabel").pack(side=tk.LEFT, padx=(10, 4))
@@ -937,6 +938,16 @@ class Ansicht3D(tk.Frame):
         self.info_var.set(tr("d3.modus." + modus))
         self.zeichne()
 
+    def punkt_verschieben(self, kopie=False):
+        """Moves (or copies) the selection from a base point to a target point; both points
+        snap to corners, midpoints and centres (F3)."""
+        if not [x for x in self.app.auswahl if hasattr(x, "verschieben")]:
+            self.info_var.set(tr("d3.msg.verschieben_leer"))
+            return
+        self._verschiebe_kopie = bool(kopie)
+        self.modus_setzen("verschieben")
+        self.info_var.set(tr("d3.modus.kopieren" if kopie else "d3.modus.verschieben"))
+
     def ebene_zuruecksetzen(self):
         self.zustand["plane"] = None
         self.zustand["auto"] = False
@@ -1020,7 +1031,7 @@ class Ansicht3D(tk.Frame):
         p = r[0] if r else None
         sk = self._skiz
         if (p is not None and sk and self.app.ortho.get() and len(sk.get("pts", ())) == 1
-                and sk["form"] in ("bem", "messen")):
+                and sk["form"] in ("bem", "messen", "verschieben")):
             # ORTHO: only along the dominant coordinate axis from the first point
             q = sk["pts"][0]
             d = G.v_sub(p, q)
@@ -1036,7 +1047,7 @@ class Ansicht3D(tk.Frame):
             return
         h = {"fang": None, "flaeche": None}
         erste = self._skiz is None
-        if m in ("bem", "pivot", "messen"):
+        if m in ("bem", "pivot", "messen", "verschieben"):
             h["fang"] = self._fang_raum(e)
             fl = self._flaeche_unter(e) if self.zustand.get("auto", True) else None
             h["flaeche"] = fl[1] if fl else None
@@ -1229,6 +1240,18 @@ class Ansicht3D(tk.Frame):
                 self.info_var.set(tr("d3.msg.mess_p2"))
             elif G.v_len(G.v_sub(p, sk["pts"][0])) > 1e-9:
                 self._mess_fertig(sk["pts"][0], p)
+        elif m == "verschieben":
+            p = self._raum_punkt(e)
+            if p is None:
+                self.info_var.set(tr("d3.msg.keine_ebene"))
+                return
+            sk = self._skiz
+            if sk is None:
+                self._skiz = {"form": "verschieben", "pts": [p]}
+                self.info_var.set(tr("d3.msg.verschieben_p2"))
+            elif G.v_len(G.v_sub(p, sk["pts"][0])) > 1e-9:
+                self._punkt_verschieben_fertig(G.v_sub(p, sk["pts"][0]))
+            self.zeichne()
         elif m == "bem":
             p = self._raum_punkt(e)
             if p is None:
@@ -1245,6 +1268,27 @@ class Ansicht3D(tk.Frame):
             else:
                 self._bem_fertig(self._bem_versatz(e, sk["pts"]))
             self.zeichne()
+
+    def _punkt_verschieben_fertig(self, d):
+        """Applies the move / copy by the vector d = (dx, dy, dz)."""
+        ziele = [x for x in self.app.auswahl if hasattr(x, "verschieben")]
+        self.app._snapshot()
+        if getattr(self, "_verschiebe_kopie", False):
+            neu = [deepcopy(x) for x in ziele]
+            self.app.elemente.extend(neu)
+            ziele = neu
+            self.app.auswahl = list(neu)
+        for el in ziele:
+            if S.ist_raum(el):
+                el.verschieben(d[0], d[1], d[2])
+            else:
+                el.verschieben(d[0], d[1])
+        self._skiz = None
+        self._modus_ende()
+        self.app.redraw()
+        f = self.app._einh_faktor()
+        self.info_var.set(tr("d3.msg.verschoben_pkt", dx=f"{d[0] / f:.2f}", dy=f"{d[1] / f:.2f}",
+                             dz=f"{d[2] / f:.2f}", einheit=self.app.einheit.get()))
 
     def _text_hoehe_vorgabe(self):
         h = self.zustand.get("text_h")
@@ -1364,6 +1408,21 @@ class Ansicht3D(tk.Frame):
                         for (i, j) in nz.kanten:
                             self._linie(nz.punkte[i], nz.punkte[j], gelb, 1, (4, 3), "vorschau")
         if not sk or not self._maus:
+            return
+        if sk["form"] == "verschieben":
+            q = self._raum_punkt(self._maus)
+            if q:
+                d = G.v_sub(q, sk["pts"][0])
+                self._linie(sk["pts"][0], q, gelb, 1, (4, 3), "vorschau")
+                for el in self.app.auswahl:
+                    if S.ist_3d(el):
+                        for nz in el.netze():
+                            for (i, j) in nz.kanten:
+                                self._linie(G.v_add(nz.punkte[i], d), G.v_add(nz.punkte[j], d),
+                                            gelb, 1, (4, 3), "vorschau")
+                self._text3(G.v_mul(G.v_add(sk["pts"][0], q), 0.5),
+                            f"{G.v_len(d) / self.app._einh_faktor():.2f} {self.app.einheit.get()}",
+                            gelb, "vorschau")
             return
         if sk["form"] == "messen":
             q = self._raum_punkt(self._maus)

@@ -459,5 +459,8 @@ for k in ("menu.3d.verschmelzen", "d3.ctx.verschmelzen", "d3.msg.verschm_min2", 
 for k in ("tb.wz.verdeckt3d",):
     check(k in I.TEXTE["de"] and k in I.TEXTE["en"], k)
 check("verdeckt3d" in IC.NAMEN, "Icon verdeckt3d")
+check("verschieben3d" in IC.NAMEN, "Icon verschieben3d")
+for k in ("d3.modus.verschieben", "d3.modus.kopieren", "d3.msg.verschieben_leer", "d3.msg.verschieben_p2", "d3.msg.verschoben_pkt", "tb.wz.verschieben3d"):
+    check(k in I.TEXTE["de"] and k in I.TEXTE["en"], k)
 check("d3.vp.verdeckt_kurz" in I.TEXTE["de"] and "d3.vp.verdeckt_kurz" in I.TEXTE["en"], "i18n d3.vp.verdeckt_kurz")
 print(f"test_3d - {ok} Checks bestanden")

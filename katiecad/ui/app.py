@@ -7481,6 +7481,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self.status.set(("Bitte zuerst den Viewport verlassen (ESC)." if de
                              else "Please leave the viewport first (ESC)."))
             return
+        if typ in ("move", "copy") and self.ansicht3d_aktiv() and not self._ist_layout():
+            self._ansicht3d.punkt_verschieben(typ == "copy")      # 3D: base point -> target point
+            return
         if typ == "stretch":
             vorher = list(self.auswahl)
             self.aktives_werkzeug.set("auswahl")

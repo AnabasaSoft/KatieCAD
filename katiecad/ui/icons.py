@@ -225,6 +225,10 @@ def _zeichne(name, d, c, f):
         L([(14, 70), (70, 70)], 6); L([(14, 70), (14, 14)], 6)
         d.ellipse([58 * f, 58 * f, 82 * f, 82 * f], outline=c, width=int(6 * f))
         L([(70, 50), (70, 90)], 4); L([(50, 70), (90, 70)], 4)
+    elif name == "verschieben3d":
+        d.rectangle([10 * f, 52 * f, 40 * f, 86 * f], outline=c, width=int(5 * f))
+        L([(40, 52), (84, 18)], 5); L([(84, 18), (62, 20)], 5); L([(84, 18), (82, 40)], 5)
+        d.ellipse([34 * f, 46 * f, 46 * f, 58 * f], fill=c)
     elif name == "skizze_poly":
         L([(8, 78), (30, 52), (92, 52), (70, 78), (8, 78)], 4)
         L([(30, 46), (46, 12), (74, 30), (62, 46), (30, 46)], 6)
@@ -274,7 +278,7 @@ NAMEN = ("auswahl", "linie", "polylinie", "kreis", "bogen", "ellipse", "spline",
          "ansicht3d", "wuerfel", "k_quader", "k_schrank", "k_zylinder", "k_kegel", "k_pyramide",
          "k_kugel", "extrudieren", "loch", "block3d", "aufloesen3d", "persp",
          "einpassen3d", "iso3d", "hoehe3d", "raster3d", "verdeckt3d", "flaeche3d", "skizze_kreis",
-         "skizze_rechteck", "skizze_linie", "skizze_poly", "ebene0", "bem3d", "mass3d", "drehen3d", "abrunden3d", "manip_pivot")
+         "skizze_rechteck", "skizze_linie", "skizze_poly", "ebene0", "bem3d", "mass3d", "drehen3d", "abrunden3d", "manip_pivot", "verschieben3d")
 
 
 def icon_png(name, farbe, groesse=26):
