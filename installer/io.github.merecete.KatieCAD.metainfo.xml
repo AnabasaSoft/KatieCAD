@@ -27,7 +27,7 @@
   </keywords>
   <url type="homepage">https://github.com/Merecete/KatieCAD</url>
   <url type="bugtracker">https://github.com/Merecete/KatieCAD/issues</url>
-  <launchable type="desktop-id">katiecad.desktop</launchable>
+  <launchable type="desktop-id">io.github.merecete.KatieCAD.desktop</launchable>
   <provides>
     <binary>katiecad</binary>
   </provides>

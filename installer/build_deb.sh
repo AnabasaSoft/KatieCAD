@@ -11,7 +11,7 @@ mkdir -p "$PKG/DEBIAN" "$PKG/opt/katiecad" "$PKG/usr/bin" \
 cp -r "$ROOT/dist/KatieCAD/." "$PKG/opt/katiecad/"
 ln -s /opt/katiecad/KatieCAD "$PKG/usr/bin/katiecad"
 cp "$ROOT/KatieCAD.png" "$PKG/usr/share/icons/hicolor/256x256/apps/katiecad.png"
-cat > "$PKG/usr/share/applications/katiecad.desktop" <<DESK
+cat > "$PKG/usr/share/applications/io.github.merecete.KatieCAD.desktop" <<DESK
 [Desktop Entry]
 Type=Application
 Name=KatieCAD
@@ -60,5 +60,20 @@ Description: 2D/3D CAD for electrical engineering (open source, MIT)
  terminal plan, cable plan, parts list) and simple 3D modelling of control
  cabinets. Licensed under the MIT license.
 CTRL
+# refresh the software-centre catalogue after (un)installing, so licence and description show up at once
+for T in postinst postrm; do
+cat > "$PKG/DEBIAN/$T" <<'POST'
+#!/bin/sh
+set -e
+if command -v appstreamcli >/dev/null 2>&1; then
+  appstreamcli refresh-cache --force >/dev/null 2>&1 || true
+fi
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor >/dev/null 2>&1 || true
+fi
+exit 0
+POST
+chmod 755 "$PKG/DEBIAN/$T"
+done
 mkdir -p "$ROOT/release"
 dpkg-deb --build --root-owner-group "$PKG" "$ROOT/release/KatieCAD-${VER}-Linux-${ARCH}.deb"

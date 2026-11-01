@@ -16,7 +16,7 @@ cp -r "$ROOT/dist/KatieCAD/." "$APPDIR/usr/lib/katiecad/"
 cp "$ROOT/KatieCAD.png" "$APPDIR/katiecad.png"
 cp "$ROOT/KatieCAD.png" "$APPDIR/.DirIcon"
 cp "$ROOT/KatieCAD.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/katiecad.png"
-cat > "$APPDIR/katiecad.desktop" <<DESK
+cat > "$APPDIR/io.github.merecete.KatieCAD.desktop" <<DESK
 [Desktop Entry]
 Type=Application
 Name=KatieCAD
@@ -33,7 +33,7 @@ mkdir -p "$APPDIR/usr/share/metainfo"
 sed -e "s/@VERSION@/$VER/" -e "s/@DATE@/$(date -u +%Y-%m-%d)/" \
     "$ROOT/installer/io.github.merecete.KatieCAD.metainfo.xml" \
     > "$APPDIR/usr/share/metainfo/io.github.merecete.KatieCAD.appdata.xml"
-cp "$APPDIR/katiecad.desktop" "$APPDIR/usr/share/applications/katiecad.desktop"
+cp "$APPDIR/io.github.merecete.KatieCAD.desktop" "$APPDIR/usr/share/applications/io.github.merecete.KatieCAD.desktop"
 cat > "$APPDIR/AppRun" <<'RUN'
 #!/bin/sh
 HERE="$(dirname "$(readlink -f "$0")")"
