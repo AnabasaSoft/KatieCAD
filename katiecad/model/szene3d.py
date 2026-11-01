@@ -52,13 +52,29 @@ def koerper_netze(elemente):
     return out
 
 
+def _front_aus_profil(korpus):
+    """Direction of the front of a cabinet carcass from its plan: the first edge of the base
+    rectangle (profile point 0 -> 1) is the front; it survives moving, turning and mirroring."""
+    pr = getattr(korpus, "profil", None)
+    if getattr(korpus, "art", "") != "prisma" or getattr(korpus, "ebene", None) or not pr or len(pr) < 4:
+        return None
+    cx = sum(p[0] for p in pr) / len(pr)
+    cy = sum(p[1] for p in pr) / len(pr)
+    dx = (pr[0][0] + pr[1][0]) / 2.0 - cx
+    dy = (pr[0][1] + pr[1][1]) / 2.0 - cy
+    ln = math.hypot(dx, dy)
+    return None if ln < 1e-6 else (dx / ln, dy / ln, 0.0)
+
+
 def _offen_richtung(teile):
     """Cabinet without door: direction of its open front (None = closed / no cabinet).
     Recognised by the part names of schrank.schrank_bauen: carcass + mounting plate, no door."""
     namen = {getattr(t, "bez", None): t for t in teile if not isinstance(t, Gruppe3D)}
     korpus, platte = namen.get("Schaltschrank"), namen.get("Montageplatte")
-    if korpus is None or platte is None or "Tür" in namen:
+    if korpus is None or "Tür" in namen:
         return None
+    if platte is None:                      # no mounting plate: the front edge tells the side
+        return _front_aus_profil(korpus)
     bk, bp = korpus.bbox3(), platte.bbox3()
     if not bk or not bp:
         return None

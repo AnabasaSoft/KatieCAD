@@ -474,4 +474,14 @@ check(_bt.text(1.0, False) == "150", "Maßtext: eigener Text")
 _bt.text_override = "ca. <> mm"
 check(_bt.text(1.0, False) == "ca. 148.50 mm", "Maßtext: <> = Messwert")
 check(core.BEFEHLE.get("MASSTEXT") == "masstext", "Befehl MASSTEXT") if hasattr(core, "BEFEHLE") else None
+from katiecad.model import schrank as _SC
+for _rot in (0, 90, 180, 270):
+    _g = _SC.schrank_bauen(800, 2000, 600, 0, 0, 0, platte=None)
+    _g.drehen(0, 0, _rot)
+    _r = _S3._offen_richtung(_g.teile)
+    _soll = {0: (0, -1), 90: (-1, 0), 180: (0, 1), 270: (1, 0)}[_rot]
+    check(_r is not None and abs(_r[0] - _soll[0]) < 1e-6 and abs(_r[1] - _soll[1]) < 1e-6,
+          f"Schrank ohne Platte/Tuer offen nach vorn (gedreht {_rot})")
+check(_S3._offen_richtung(_SC.schrank_bauen(800, 2000, 600, 0, 0, 0, platte=None, tuer=True).teile) is None,
+      "Schrank mit Tuer bleibt geschlossen")
 print(f"test_3d - {ok} Checks bestanden")
