@@ -4,6 +4,7 @@
 <component type="desktop-application">
   <id>io.github.merecete.KatieCAD</id>
   <name>KatieCAD</name>
+  <pkgname>katiecad</pkgname>
   <icon type="stock">katiecad</icon>
   <summary>2D/3D CAD for electrical engineering</summary>
   <metadata_license>CC0-1.0</metadata_license>
@@ -28,9 +29,8 @@
   </keywords>
   <url type="homepage">https://github.com/Merecete/KatieCAD</url>
   <url type="bugtracker">https://github.com/Merecete/KatieCAD/issues</url>
-  <launchable type="desktop-id">io.github.merecete.KatieCAD.desktop</launchable>
+  <launchable type="desktop-id">katiecad.desktop</launchable>
   <provides>
-    <id>io.github.merecete.KatieCAD.desktop</id>
     <binary>katiecad</binary>
   </provides>
   <content_rating type="oars-1.1"/>

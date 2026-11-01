@@ -12,7 +12,7 @@ cp -r "$ROOT/dist/KatieCAD/." "$PKG/opt/katiecad/"
 ln -s /opt/katiecad/KatieCAD "$PKG/usr/bin/katiecad"
 cp "$ROOT/KatieCAD.png" "$PKG/usr/share/icons/hicolor/256x256/apps/katiecad.png"
 cp "$ROOT/KatieCAD.png" "$PKG/usr/share/pixmaps/katiecad.png"
-cat > "$PKG/usr/share/applications/io.github.merecete.KatieCAD.desktop" <<DESK
+cat > "$PKG/usr/share/applications/katiecad.desktop" <<DESK
 [Desktop Entry]
 Type=Application
 Name=KatieCAD
