@@ -27,7 +27,7 @@ unten machen das bereits. Eigene Blöcke legst du weiter im Block-Browser/Projek
    installieren mit `sudo apt install ./release/KatieCAD-1.1.0-Linux-amd64.deb`
    (legt das Programm nach `/opt/katiecad`, Startmenü-Eintrag und Befehl `katiecad`).
 3. Als **AppImage** (eine einzelne Datei, ohne Ordner und ohne Installation): `installer/build_appimage.sh 1.1.2`
-   → `release/KatieCAD-1.1.2-Linux-x86_64.AppImage` (lädt bei Bedarf `appimagetool`; läuft ohne FUSE).
+   → `release/KatieCAD-1.1.2-Linux-x86_64.AppImage` (lädt bei Bedarf `appimagetool` mit curl, wget oder python3; braucht das Programm `file`, Debian/Ubuntu: `sudo apt install file`; läuft ohne FUSE).
    Starten: `chmod +x KatieCAD-*.AppImage && ./KatieCAD-*.AppImage`.
    Alternativ den Ordner `dist/KatieCAD` kopieren, er ist ohne Installation lauffähig.
 
