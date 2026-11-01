@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata: shown by GNOME Software, KDE Discover and others for the .deb / AppImage.
+     @VERSION@ and @DATE@ are replaced by the build scripts. -->
+<component type="desktop-application">
+  <id>io.github.merecete.KatieCAD</id>
+  <name>KatieCAD</name>
+  <summary>2D/3D CAD for electrical engineering</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer_name>Merecete</developer_name>
+  <description>
+    <p>KatieCAD is a free and open-source 2D/3D CAD program for electrical engineering: switchgear construction, distribution boards and building installation.</p>
+    <p>Wires, devices, cross references, terminals and cables, projects with several sheets, a symbol library, automatic documentation (device list, terminal plan, cable plan, parts list) and simple 3D modelling of control cabinets with layout views and PDF output.</p>
+    <p>Open source under the MIT license. German and English user interface.</p>
+  </description>
+  <categories>
+    <category>Graphics</category>
+    <category>Engineering</category>
+    <category>Electronics</category>
+  </categories>
+  <keywords>
+    <keyword>CAD</keyword>
+    <keyword>electrical</keyword>
+    <keyword>schematic</keyword>
+    <keyword>switchgear</keyword>
+    <keyword>DXF</keyword>
+  </keywords>
+  <url type="homepage">https://github.com/Merecete/KatieCAD</url>
+  <url type="bugtracker">https://github.com/Merecete/KatieCAD/issues</url>
+  <launchable type="desktop-id">katiecad.desktop</launchable>
+  <provides>
+    <binary>katiecad</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="@VERSION@" date="@DATE@"/>
+  </releases>
+</component>

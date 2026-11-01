@@ -20,13 +20,19 @@ cat > "$APPDIR/katiecad.desktop" <<DESK
 [Desktop Entry]
 Type=Application
 Name=KatieCAD
-Comment=2D CAD and electrical CAD
+GenericName=Electrical CAD
+Comment=2D/3D CAD for electrical engineering
 Exec=KatieCAD %F
 Icon=katiecad
 Terminal=false
-Categories=Graphics;Engineering;
+Categories=Graphics;Engineering;Electronics;
+Keywords=CAD;electrical;schematic;switchgear;DXF;
 StartupWMClass=KatieCAD
 DESK
+mkdir -p "$APPDIR/usr/share/metainfo"
+sed -e "s/@VERSION@/$VER/" -e "s/@DATE@/$(date -u +%Y-%m-%d)/" \
+    "$ROOT/installer/io.github.merecete.KatieCAD.metainfo.xml" \
+    > "$APPDIR/usr/share/metainfo/io.github.merecete.KatieCAD.appdata.xml"
 cp "$APPDIR/katiecad.desktop" "$APPDIR/usr/share/applications/katiecad.desktop"
 cat > "$APPDIR/AppRun" <<'RUN'
 #!/bin/sh

@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.2
+- Change: **Linux package (.deb) with complete program information**: description "2D/3D CAD for electrical engineering", open source under the MIT license (AppStream metadata, copyright file), project page GitHub, category Electronics, installed size; the same metadata in the AppImage
 - New: **terminals (and device masks) with a "show" check box per field** (IND, MAN, TYP, PER, NUM): hidden fields stay available for lists and evaluation but do not appear in the drawing; the others move up without a gap
 - Fix: **export project as DXF** failed with "No page could be created" (since the fonts of 1.1.1 the DXF page received font arguments it did not know); the message now also names the actual reason
 - New: **Windows installer with the KatieCAD banner**: welcome and finish page show mascot and logo, the other pages the mascot at the top right (several sizes for high screen resolutions), own welcome text, publisher and support links; images made from `installer/KatieCAD_Setup_Banner.png` by `tools/make_installer_images.py`
