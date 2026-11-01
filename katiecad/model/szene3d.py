@@ -83,6 +83,38 @@ def _offen_richtung(teile):
     return None if ln < 1e-6 else tuple(c / ln for c in d)
 
 
+TUER_TEILE = ("Tür", "Türgriff", "Schloss")
+
+
+def ohne_tueren(elemente, aus=True):
+    """Elements with the door parts (door, handle, lock) of cabinet blocks left out - for a
+    viewport that shows the cabinet without door. The reduced copy of a block is kept on the
+    block, so ids stay stable (hidden-line cache) as long as its parts do not change."""
+    if not aus:
+        return list(elemente)
+
+    def reduziert(g):
+        if not isinstance(g, Gruppe3D):
+            return g
+        if not any(getattr(t, "bez", None) in TUER_TEILE or isinstance(t, Gruppe3D)
+                   for t in g.teile):
+            return g
+        schluessel = tuple(id(t) for t in g.teile)
+        c = getattr(g, "_ohne_tuer", None)
+        if c is not None and c[0] == schluessel:
+            return c[1]
+        neu = [reduziert(t) for t in g.teile if getattr(t, "bez", None) not in TUER_TEILE]
+        if all(a is b for a, b in zip(neu, g.teile)) and len(neu) == len(g.teile):
+            erg = g
+        else:
+            erg = copy.copy(g)
+            erg.teile = neu
+        g._ohne_tuer = (schluessel, erg)
+        return erg
+
+    return [reduziert(el) for el in elemente]
+
+
 def koerper_netze_offen(elemente):
     """Like koerper_netze, plus {id(mesh): direction} of the open sides (cabinets without door)."""
     paare, offen = [], {}

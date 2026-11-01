@@ -3151,6 +3151,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if vp.ansicht3d:
             m3.add_command(label=("✓ " if vp.ansicht3d.get("verdeckt") else "    ")
                            + tr("d3.vp.verdeckt"), command=lambda: self._vp_3d_verdeckt(vp))
+        if vp.ansicht3d:
+            m3.add_command(label=("✓ " if vp.ansicht3d.get("tueren_aus") else "    ")
+                           + tr("d3.vp.tueren_aus"), command=lambda: self._vp_3d_tueren(vp))
         m3.add_command(label=tr("d3.vp.aus"), command=lambda: self._vp_3d_aus(vp))
         menu.add_cascade(label=tr("d3.vp.menue"), menu=m3)
         menu.add_separator()
@@ -3448,15 +3451,19 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             res = self._snap_viewports(x, y)             # model content seen through the viewports
         return res
 
-    def _vp_fang_kandidaten(self):
+    def _vp_fang_kandidaten(self, ohne_tueren=False):
         """Snap candidates (3D point, kind) of the whole model; cached until the next redraw."""
-        c = getattr(self, "_vp_fang_cache", None)
+        cc = self.__dict__.get("_vp_fang_cache")
+        if not isinstance(cc, dict):
+            cc = self._vp_fang_cache = {}
+        c = cc.get(bool(ohne_tueren))
         if c is None:
             from katiecad.model import szene3d as S3
-            c = S3.fang_kandidaten([el for el in self.elemente
-                                    if not (self.layers.get(el.layer)
-                                            and not self.layers[el.layer].sichtbar)])
-            self._vp_fang_cache = c
+            c = S3.fang_kandidaten(S3.ohne_tueren(
+                [el for el in self.elemente
+                 if not (self.layers.get(el.layer) and not self.layers[el.layer].sichtbar)],
+                bool(ohne_tueren)))
+            cc[bool(ohne_tueren)] = c
         return c
 
     def _snap_viewports(self, x, y):
@@ -3496,7 +3503,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             vcx, vcy = self.mm_to_px(vp.x + vp.breite / 2, vp.y + vp.hoehe / 2)
             kam = S3.vp_kamera(vp, skala)
             treffer = []
-            for p3, art in self._vp_fang_kandidaten():
+            for p3, art in self._vp_fang_kandidaten(bool(vp.ansicht3d.get("tueren_aus"))):
                 if not modi[namen[art]].get():
                     continue
                 q = kam.proj(p3, vcx, vcy)
@@ -3511,7 +3518,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             if vp.ansicht3d.get("verdeckt"):               # only points on visible edges
                 cache = self.__dict__.setdefault("_vp_verdeckt_cache", {}).setdefault(id(vp), [])
                 lin, _t = S3.szene_segmente(
-                    self.elemente, kam, vcx, vcy,
+                    S3.ohne_tueren(self.elemente, bool(vp.ansicht3d.get("tueren_aus"))),
+                    kam, vcx, vcy,
                     lambda el: not (self.layers.get(el.layer) and not self.layers[el.layer].sichtbar),
                     verdeckt=True, cache=cache)
                 segs = [sg for _el, sg in lin]
@@ -5231,7 +5239,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if verdeckt and getattr(self, "_vp_bewegt", False):
             verdeckt = False                  # fast wireframe while the view is being moved
         cache = self.__dict__.setdefault("_vp_verdeckt_cache", {}).setdefault(id(vp), [])
-        linien, texte = S3.szene_segmente(self.elemente, kam, vcx, vcy, sichtbar,
+        elemente = S3.ohne_tueren(self.elemente, bool((vp.ansicht3d or {}).get("tueren_aus")))
+        linien, texte = S3.szene_segmente(elemente, kam, vcx, vcy, sichtbar,
                                           verdeckt=verdeckt, cache=cache)
         for el, seg in linien:
             seg = S3.clip_segment(seg, clip)
@@ -5416,6 +5425,17 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             vp.ansicht3d.pop("verdeckt", None)
         else:
             vp.ansicht3d["verdeckt"] = True
+        self.redraw()
+
+    def _vp_3d_tueren(self, vp):
+        """Shows / hides the doors (door, handle, lock) of cabinet blocks in this viewport only."""
+        if not vp.ansicht3d:
+            return
+        self._snapshot()
+        if vp.ansicht3d.get("tueren_aus"):
+            vp.ansicht3d.pop("tueren_aus", None)
+        else:
+            vp.ansicht3d["tueren_aus"] = True
         self.redraw()
 
     def _vp_3d_aus(self, vp):

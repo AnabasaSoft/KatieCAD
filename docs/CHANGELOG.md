@@ -1,5 +1,8 @@
 # Änderungen
 
+## 1.1.3
+- Neu: **Schranktüren pro Viewport ausblenden** (Rechtsklick auf den Viewport › 3D-Ansicht in diesem Viewport › Schranktüren ausblenden): Tür, Türgriff und Schloss verschwinden nur in diesem Viewport; derselbe Schrank erscheint so in einem Layout mit und ohne Tür, ohne ihn doppelt zu zeichnen. Gespeichert mit dem Projekt, wirkt auf Objektfang und PDF
+
 ## 1.1.2
 - Neu: **Zwischen Viewports wechseln**: in der Viewport-Ansicht wechselt ein Doppelklick in einen anderen Viewport direkt dorthin (wie in AutoCAD), ein Doppelklick außerhalb verlässt die Viewport-Ansicht; so lassen sich mehrere Ansichten desselben 3D-Modells im Layout einzeln einstellen
 - Änderung: **Linux-Paket (.deb) mit vollständigen Programminfos**: Beschreibung „2D/3D-CAD für Elektrotechnik“, Open Source unter MIT-Lizenz (AppStream-Metadaten, Copyright-Datei), Projektseite GitHub, Kategorie Elektronik, installierte Größe; dieselben Metadaten im AppImage; Metadaten verweisen auf den Paketnamen (`katiecad`), damit die Paketverwaltung Name, Icon und Lizenz zuordnet; Icon in den AppStream-Metadaten eingetragen; das Paket aktualisiert den Software-Katalog bei Installation/Entfernung selbst

@@ -1,5 +1,8 @@
 # Changes
 
+## 1.1.3
+- New: **Hide cabinet doors per viewport** (right-click the viewport > 3D view in this viewport > Hide cabinet doors): door, handle and lock disappear in this viewport only; the same cabinet thus appears in one layout with and without door, without drawing it twice. Saved with the project, applies to object snap and PDF
+
 ## 1.1.2
 - New: **Switch between viewports**: in the viewport view a double click into another viewport switches straight to it (as in AutoCAD), a double click outside leaves the viewport view; several views of the same 3D model in a layout can thus be set up one by one
 - Change: **Linux package (.deb) with complete program information**: description "2D/3D CAD for electrical engineering", open source under the MIT license (AppStream metadata, copyright file), project page GitHub, category Electronics, installed size; the same metadata in the AppImage; the metadata names the package (`katiecad`) so the software centre can match name, icon and licence; icon declared in the AppStream metadata; the package refreshes the software catalogue itself on install/removal

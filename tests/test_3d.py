@@ -515,4 +515,23 @@ _va.on_doppelklick(_Ev(200, 50))
 check(_va._aktiver_viewport is _v2 and _v2.aktiv and not _v1.aktiv, "Doppelklick in anderen Viewport wechselt")
 _va.on_doppelklick(_Ev(500, 500))
 check(_va._aktiver_viewport is None and not _v2.aktiv, "Doppelklick ausserhalb verlaesst Viewport")
+# --- doors hidden per viewport ---
+_gs = _SC.schrank_bauen(800, 2000, 600, 0, 0, 0, platte=(700, 1900), tuer=True)
+_g2 = _S3.ohne_tueren([_gs], True)[0]
+check(len(_gs.teile) > len(_g2.teile) and not any(t.bez in ("Tür", "Türgriff", "Schloss") for t in _g2.teile),
+      "ohne_tueren entfernt Tuer, Griff, Schloss")
+check(any(t.bez == "Tür" for t in _gs.teile), "Original behaelt die Tuer")
+check(_S3.ohne_tueren([_gs], True)[0] is _g2, "reduzierte Kopie bleibt stabil (Cache)")
+check(_S3.ohne_tueren([_gs], False)[0] is _gs, "Tueren an: Original")
+check(_S3._offen_richtung(_g2.teile) is not None, "Schrank ohne Tuer wird als offen erkannt")
+_kamv = G.Kamera(yaw=0.0, pitch=0.0); _kamv.skala = 0.2
+_l1, _ = _S3.szene_segmente([_gs], _kamv, 300, 300, None, verdeckt=True)
+_l2, _ = _S3.szene_segmente(_S3.ohne_tueren([_gs], True), _kamv, 300, 300, None, verdeckt=True)
+check(len(_l1) != len(_l2), "Viewport-Ansicht unterscheidet sich ohne Tuer")
+check("d3.vp.tueren_aus" in I.TEXTE["de"] and "d3.vp.tueren_aus" in I.TEXTE["en"], "i18n d3.vp.tueren_aus")
+_vt = core.Viewport(0, 0, 100, 100, ansicht3d={"yaw": 0.0, "pitch": 0.0})
+_va2 = _VApp(); _va2._snapshot = lambda: None
+_va2._vp_3d_tueren(_vt); check(_vt.ansicht3d.get("tueren_aus") is True, "Tueren ausblenden gesetzt")
+_va2._vp_3d_tueren(_vt); check("tueren_aus" not in _vt.ansicht3d, "Tueren wieder eingeblendet")
+check(core.Viewport(**{k: v for k, v in _vt.to_dict().items() if k != "typ"}).ansicht3d is not None, "Viewport bleibt serialisierbar")
 print(f"test_3d - {ok} Checks bestanden")

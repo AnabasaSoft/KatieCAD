@@ -191,6 +191,7 @@ def _pdf_viewport_3d(seite, vp, elemente, layers, farbig, cxp, cyp):
         return not (l and not l.sichtbar)
 
     kam = S.vp_kamera(vp, vp.zoom)
+    elemente = S.ohne_tueren(elemente, bool((vp.ansicht3d or {}).get("tueren_aus")))
     linien, texte = S.szene_segmente(elemente, kam, 0.0, 0.0, sichtbar,
                                    verdeckt=bool((vp.ansicht3d or {}).get("verdeckt")),
                                    aufloesung=4.0)
