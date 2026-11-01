@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.2
+- Change: **minimum size of the main window** (1010 × 600 pixels, down to the screen size on small screens); the window can no longer be made so small that the program becomes unusable
 - Change: **viewport view snaps while turning** (middle mouse button, view cube) onto Front/Back/Left/Right/Top/Bottom when within 4 degrees, so dimensions in the layout show true lengths
 - Fix: **right-click in the layout over a viewport** only showed the viewport menu, even for dimensions/texts on it (no move/copy with base point); now the menu of the object under the pointer opens, the viewport menu additionally has move/copy
 - Fix: a **cabinet without door and without mounting plate** was a closed box with "Hide hidden edges"; it is now open at the front (front taken from the plan, also rotated/mirrored)

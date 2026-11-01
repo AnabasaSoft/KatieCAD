@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.2
+- Änderung: **Mindestgröße des Hauptfensters** (1010 × 600 Pixel, auf kleinen Bildschirmen bis zur Bildschirmgröße); das Fenster lässt sich nicht mehr so klein ziehen, dass das Programm unbedienbar wird
 - Änderung: **Viewport-Ansicht rastet beim Drehen** (mittlere Maustaste, Viewcube) bis 4° neben Vorne/Hinten/Links/Rechts/Oben/Unten exakt ein, damit Bemaßungen im Layout echte Längen zeigen
 - Fix: **Rechtsklick im Layout über einem Viewport** zeigte nur das Viewport-Menü, auch bei Bemaßungen/Texten darauf (kein Verschieben/Kopieren mit Basispunkt); jetzt öffnet sich das Menü des Objekts unter dem Mauszeiger, das Viewport-Menü hat zusätzlich Verschieben/Kopieren
 - Fix: **Schrank ohne Tür und ohne Montageplatte** war bei „Verdeckte Kanten ausblenden“ ein geschlossener Quader; er ist jetzt vorne offen (Vorderseite aus dem Grundriss, auch gedreht/gespiegelt)

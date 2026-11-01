@@ -237,6 +237,9 @@ def geraete_aus_blattdaten_liste(app, j):
     return app._geraete_blatt(p.blatt_pfad(j))
 
 
+MIN_FENSTER = (1010, 600)         # smallest window size in pixels (width, height)
+
+
 class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     def __init__(self, root):
         self.root = root
@@ -252,6 +255,12 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self.root.bind = _bind_mac
         self.root.title("KatieCAD")
         self.root.geometry("1500x950")
+        # smallest usable window (toolbars and status bar stay readable); never larger than the screen
+        try:
+            self.root.minsize(min(MIN_FENSTER[0], self.root.winfo_screenwidth()),
+                              min(MIN_FENSTER[1], max(400, self.root.winfo_screenheight() - 80)))
+        except tk.TclError:
+            pass
         farbschema_anwenden(lade_konfiguration().get("farbschema", "violett"))
         self.root.configure(bg=FARBEN["bg_dunkel"])
 
