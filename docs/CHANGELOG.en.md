@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.2
+- New: **Linux AppImage**: the program as a single, directly runnable file (`KatieCAD-<version>-Linux-x86_64.AppImage`), no folder and no installation; built by the release workflow together with .deb and .tar.gz (`installer/build_appimage.sh`)
 - Change: **minimum size of the main window** (1010 × 600 pixels, down to the screen size on small screens); the window can no longer be made so small that the program becomes unusable
 - Change: **viewport view snaps while turning** (middle mouse button, view cube) onto Front/Back/Left/Right/Top/Bottom when within 4 degrees, so dimensions in the layout show true lengths
 - Fix: **right-click in the layout over a viewport** only showed the viewport menu, even for dimensions/texts on it (no move/copy with base point); now the menu of the object under the pointer opens, the viewport menu additionally has move/copy

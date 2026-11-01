@@ -1,12 +1,10 @@
 # KatieCAD
 
-**KatieCAD is an open-source electrical CAD for switchgear construction, distribution boards and building installation, built with Python and Tkinter.**
+**KatieCAD is an open-source electrical CAD for switchgear construction, distribution boards and building installation – built with Python and Tkinter.**
 
 It covers the complete workflow of an electrical project: draw circuit diagrams across several sheets, connect devices with wires, let cross references and device designations be generated automatically, and produce the documentation (cover sheet, table of contents, device list, terminal plan, cable plan) at the push of a button. At the same time it is a full 2D CAD with simple 3D modelling: you can draw freely without a project, build bodies in 3D, create, save and reuse your own blocks, and print 2D and 3D views on the same sheet.
 
-KatieCAD brings everything you need for daily work into one tool: electrical diagrams with automatic documentation, a complete 2D CAD and simple 3D modelling, ready to use, free and open source.
-
-![KatieCAD Banner1](Screenshots/KatieCAD_Banner.png)
+With version 1.1 KatieCAD brings everything you need for daily work into one tool: electrical diagrams with automatic documentation, a complete 2D CAD and simple 3D modelling – ready to use, free and open source.
 
 ![Screenshot1](Screenshots/Screenshot1.png)
 
@@ -15,8 +13,6 @@ KatieCAD brings everything you need for daily work into one tool: electrical dia
 ![Screenshot3](Screenshots/Screenshot3.png)
 
 ![Screenshot4](Screenshots/Screenshot4.png)
-
-![Screenshot5](Screenshots/Screenshot5.png)
 
 ## Features
 
@@ -27,7 +23,7 @@ KatieCAD brings everything you need for daily work into one tool: electrical dia
 - **Devices with electrical mask** – designation (IND), type (TYP) and function (PER); main and auxiliary contacts, automatic device references
 - **Terminals and cables**, coordinate field, automatic wiring of connected points
 - **Symbol library** with about 40 standard symbols (contactors, relays, fuses, switches, motors, transformers, …) and your own block library with a block browser
-- **Documentation generator:** cover sheet, table of contents, device list, terminal plan, cable plan; customisable columns via `report_templates/`, CSV export and PDF output
+- **Documentation generator:** cover sheet, table of contents, device list, terminal plan, cable plan; customisable columns via `report_templates/`, CSV/Excel export and PDF output
 
 ### General CAD
 - **Drawing tools:** Line, Polyline, Circle, Arc, Ellipse, Spline, Rectangle, Text, Hatching
@@ -52,23 +48,7 @@ KatieCAD brings everything you need for daily work into one tool: electrical dia
 
 ## Download
 
-Ready-made installers for **Windows**, **Linux** (`.deb` / `.tar.gz`) and **macOS** are available on the [Releases](../../releases) page.
-
-### Linux one-liners
-
-**Debian/Ubuntu** (`.deb` from the Releases page):
-
-```bash
-sudo apt install ./KatieCAD-*Linux-*.deb
-katiecad
-```
-
-**Arch Linux** ([`katiecad-git`](https://aur.archlinux.org/packages/katiecad-git), tracks `main`):
-
-```bash
-yay -S katiecad-git
-katiecad
-```
+Ready-made installers for **Windows**, **Linux** (`.AppImage` / `.deb` / `.tar.gz`) and **macOS** are available on the [Releases](../../releases) page.
 
 ## Run from source
 

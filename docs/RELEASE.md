@@ -10,6 +10,7 @@ sie nicht auf einem anderen System erzeugen kann.
 3. Nach ca. 10-15 Minuten liegen unter *Releases* bzw. *Actions > Artefakte*:
    - `KatieCAD-<Version>-Windows-Setup.exe` (Installer, Inno Setup)
    - `KatieCAD-<Version>-macOS.dmg` (Programm in „Programme“ ziehen)
+   - `KatieCAD-<Version>-Linux-x86_64.AppImage` (eine Datei, ausführbar machen und starten)
    - `KatieCAD-<Version>-Linux-amd64.deb` und `KatieCAD-<Version>-Linux.tar.gz`
 
 Hinweise
