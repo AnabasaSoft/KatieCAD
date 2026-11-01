@@ -484,4 +484,10 @@ for _rot in (0, 90, 180, 270):
           f"Schrank ohne Platte/Tuer offen nach vorn (gedreht {_rot})")
 check(_S3._offen_richtung(_SC.schrank_bauen(800, 2000, 600, 0, 0, 0, platte=None, tuer=True).teile) is None,
       "Schrank mit Tuer bleibt geschlossen")
+_e = {"yaw": 2.5, "pitch": 3.56}
+check(a._vp_winkel_einrasten(_e) and _e == {"yaw": 0.0, "pitch": 0.0}, "Viewport-Winkel rastet auf Vorne ein")
+_e = {"yaw": -45.0, "pitch": 35.264}
+check(not a._vp_winkel_einrasten(_e) and _e["yaw"] == -45.0, "Isometrie bleibt unveraendert")
+_e = {"yaw": 359.0, "pitch": 88.0}
+check(a._vp_winkel_einrasten(_e) and _e == {"yaw": 0.0, "pitch": 90.0}, "Viewport-Winkel rastet auf Oben ein")
 print(f"test_3d - {ok} Checks bestanden")

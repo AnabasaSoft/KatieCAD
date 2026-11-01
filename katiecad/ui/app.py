@@ -2920,6 +2920,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 k = Kamera(yaw=a3.get("yaw", -45.0), pitch=a3.get("pitch", 35.264))
                 k.orbit(event.x - x0, event.y - y0)
                 a3["yaw"], a3["pitch"] = k.yaw, k.pitch
+                self._vp_gedreht = True
                 self._vp_orbit_pos = (event.x, event.y)
                 self._vp_bewegt = True
                 self.redraw()
@@ -2950,9 +2951,31 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self.redraw()
         self._zeichne_raster()
 
+    @staticmethod
+    def _vp_winkel_einrasten(a3, grenze=4.0):
+        """Snaps a view that is only a few degrees off a standard direction exactly onto it
+        (front, top, side ...), so measures taken in the viewport are true lengths."""
+        if not a3:
+            return False
+        alt = (a3.get("yaw"), a3.get("pitch"))
+        yaw, pitch = float(a3.get("yaw", 0.0)), float(a3.get("pitch", 0.0))
+        r = round(yaw / 90.0) * 90.0
+        if abs(yaw - r) <= grenze:
+            yaw = r % 360.0
+        for t in (0.0, 90.0, -90.0):
+            if abs(pitch - t) <= grenze:
+                pitch = t
+        a3["yaw"], a3["pitch"] = yaw, pitch
+        return alt != (yaw, pitch)
+
     def on_pan_end(self, event):
         self.pan_start = None
         self._vp_pan_start = None
+        if getattr(self, "_vp_gedreht", False):
+            self._vp_gedreht = False
+            vp0 = self._aktiver_viewport
+            if vp0 is not None and self._vp_winkel_einrasten(getattr(vp0, "ansicht3d", None)):
+                self._vp_bewegt = True
         if getattr(self, "_vp_bewegt", False):          # hidden edges are computed again
             self._vp_bewegt = False
             self.redraw()
@@ -5323,6 +5346,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self._vpw_drag = None
         vp = d["vp"]
         if d["bewegt"]:
+            self._vp_winkel_einrasten(vp.ansicht3d)        # near a standard view: exactly onto it
             self._vp_bewegt = False
             self.redraw()
             return
