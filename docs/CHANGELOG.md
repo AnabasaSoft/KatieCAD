@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.2
+- Fix: **Rechtsklick im Layout über einem Viewport** zeigte nur das Viewport-Menü, auch bei Bemaßungen/Texten darauf (kein Verschieben/Kopieren mit Basispunkt); jetzt öffnet sich das Menü des Objekts unter dem Mauszeiger, das Viewport-Menü hat zusätzlich Verschieben/Kopieren
 - Fix: **Schrank ohne Tür und ohne Montageplatte** war bei „Verdeckte Kanten ausblenden“ ein geschlossener Quader; er ist jetzt vorne offen (Vorderseite aus dem Grundriss, auch gedreht/gespiegelt)
 - Neu: **Maßtext ändern**: Doppelklick auf eine Bemaßung bzw. Rechtsklick › „Maßtext ändern…“ (Befehl `MASSTEXT`) öffnet einen eigenen Dialog für einen beliebigen Text (z. B. 150), `<>` = Messwert, mit Knopf „Messwert wiederherstellen“
 - Neu: **Objektfang im Layout auf Viewport-Inhalt** (2D: alle Fangarten, 3D: Ecken, Kantenmitten, Zentren, ohne den Viewport zu aktivieren); **Bemaßungen im Layout** innerhalb eines Viewports zeigen den **Modellwert** statt Papier-mm

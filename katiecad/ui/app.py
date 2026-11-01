@@ -3033,6 +3033,16 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if self._ist_layout() and self._aktiver_viewport is None:
             vp = self._viewport_unter_maus(event)
             if vp is not None and self.aktives_werkzeug.get() == "auswahl":
+                x_mm, y_mm = self.px_to_mm(event.x, event.y)
+                el = self._element_unter_maus(x_mm, y_mm, 8 / self.view["zoom"])
+                if el is not None and not isinstance(el, Viewport):
+                    # an object lying on the viewport (dimension, text ...): its own menu
+                    if el not in self.auswahl:
+                        self.auswahl = [el]
+                        self.redraw()
+                    self._rc_start = None
+                    self._kontextmenue(event)
+                    return
                 self._viewport_kontextmenu(event, vp)
                 return
         if self.letzter_punkt is None and not self.aktuelle_polylinie:
@@ -3068,6 +3078,13 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         menu.add_command(label=("Aktivieren (Modell bearbeiten)" if de
                                 else "Activate (edit model)"),
                          command=lambda: self._vp_aktivieren(vp))
+        menu.add_separator()
+        for typ, text_de, text_en in (
+                ("move", "Verschieben (Basispunkt)", "Move (base point)"),
+                ("copy", "Kopieren (Basispunkt, mehrfach)", "Copy (base point, multiple)"),
+                ("copybase", "Kopieren mit Basispunkt (COPYBASE)", "Copy with base point (COPYBASE)")):
+            menu.add_command(label=text_de if de else text_en,
+                             command=lambda t=typ: self._vp_op_start(vp, t))
         menu.add_separator()
         ms = tk.Menu(menu, **stil)
         for m in MASSSTAEBE:
@@ -3111,6 +3128,12 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             menu.tk_popup(event.x_root, event.y_root)
         finally:
             menu.grab_release()
+
+    def _vp_op_start(self, vp, typ):
+        """Move / copy of the viewport frame itself (selects it first)."""
+        self.auswahl = [vp]
+        self.redraw()
+        self._op_start(typ)
 
     def _vp_aktivieren(self, vp):
         if self._aktiver_viewport is not None:
