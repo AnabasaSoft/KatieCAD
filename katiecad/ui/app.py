@@ -561,7 +561,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     def beenden(self):
         if self._dirty:
             antwort = messagebox.askyesnocancel(
-                tr("msg.beenden_titel"), tr("msg.beenden_frage"))
+                tr("msg.beenden_titel"), self._speichern_frage_text("beenden"),
+                parent=self.root)
             if antwort is None:
                 return
             if antwort:
@@ -5544,10 +5545,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         de = SPRACHE["aktuell"] == "de"
         if self._dirty:
             antwort = messagebox.askyesnocancel(
-                ("Öffnen" if de else "Open"),
-                ("Die aktuelle Zeichnung wurde geändert.\n\nMöchten Sie vor dem "
-                 "Öffnen speichern?" if de else
-                 "The current drawing has been modified.\n\nSave before opening?"))
+                ("Öffnen" if de else "Open"), self._speichern_frage_text("oeffnen"),
+                parent=self.root)
             if antwort is None:
                 return
             if antwort:
@@ -8396,12 +8395,25 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     # ========================================================
     # NEW: project management
     # ========================================================
-    def _projekt_aenderungen_klaeren(self):
+    def _speichern_frage_text(self, aktion):
+        """Question text for unsaved changes; names project and sheet when a project is
+        open and says what 'No' means. `aktion`: oeffnen / schliessen / beenden / wechseln."""
+        wort = tr("msg.aktion." + aktion)
+        p = self.projekt
+        if p is None:
+            return tr("msg.speichern.zeichnung", aktion=wort)
+        try:
+            blatt = f"{p.nummer(p.aktiv)} {p.blaetter[p.aktiv].name}"
+        except Exception:
+            blatt = ""
+        return tr("msg.speichern.projekt", projekt=p.name, blatt=blatt, aktion=wort)
+
+    def _projekt_aenderungen_klaeren(self, aktion="schliessen"):
         """Asks about unsaved changes. True = continue."""
         if not self._dirty:
             return True
         antwort = messagebox.askyesnocancel(
-            tr("msg.projekt.titel"), tr("msg.projekt.speichern_frage"),
+            tr("msg.projekt.titel"), self._speichern_frage_text(aktion),
             parent=self.root)
         if antwort is None:
             return False
@@ -8473,7 +8485,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self._update_titel()
 
     def projekt_erstellen(self):
-        if not self._projekt_aenderungen_klaeren():
+        if not self._projekt_aenderungen_klaeren("wechseln"):
             return
         start = lade_konfiguration().get("letzter_projektordner", "")
         if not start or not os.path.isdir(start):
@@ -8509,7 +8521,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self.status.set(tr("msg.projekt.erstellt", name=p.name, pfad=p.ordner))
 
     def projekt_oeffnen(self):
-        if not self._projekt_aenderungen_klaeren():
+        if not self._projekt_aenderungen_klaeren("wechseln"):
             return
         start = lade_konfiguration().get("letzter_projektordner", "")
         kw = {"initialdir": start} if start and os.path.isdir(start) else {}

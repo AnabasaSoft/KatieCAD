@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.2
+- Change: **save questions** for unsaved changes (open, quit, open/create/close project) now name the project and sheet in a project and state that "No" discards the changes
 - New: **message boxes in the design of the program** (colour scheme, Yes/No/Cancel, Y/N keys, Enter/Esc) instead of the system boxes
 - Change: **File > New** always asks: with unsaved changes "Save changes?" (Yes/No/Cancel), otherwise a clear confirmation (default: No); in a project File > New closes the **whole project** (after asking "Save the changes in the project?"); sheets are managed in the side bar only
 - New: **own menu bar now on Windows as well**: looks the same everywhere and follows the colour scheme (the Windows menu bar was always white); macOS keeps its native menu bar; set the environment variable `KATIECAD_NATIVE_MENU=1` to force the native bar

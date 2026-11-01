@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.2
+- Änderung: **Speichern-Fragen** bei ungespeicherten Änderungen (Öffnen, Beenden, Projekt öffnen/erstellen/schließen) nennen jetzt bei einem Projekt Projektname und Blatt und sagen, dass bei „Nein“ die Änderungen verloren gehen
 - Neu: **Meldungsfenster im Design des Programms** (Farbschema, Ja/Nein/Abbrechen, J/N-Tasten, Enter/Esc) statt der Systemfenster
 - Änderung: **Datei › Neu** fragt immer nach: bei ungespeicherten Änderungen „Änderungen speichern?“ (Ja/Nein/Abbrechen), sonst eine klare Bestätigung (Standard: Nein); in einem Projekt wird beim Klick auf Neu das **gesamte Projekt geschlossen** (vorher Frage „Änderungen im Projekt speichern?“), Blätter verwaltet man nur über die Seitenleiste
 - Neu: **Eigene Menüleiste jetzt auch unter Windows**: sieht überall gleich aus und folgt dem Farbschema (die Windows-Menüleiste war immer weiß); macOS behält seine native Menüleiste; mit der Umgebungsvariable `KATIECAD_NATIVE_MENU=1` lässt sich die native Leiste erzwingen
