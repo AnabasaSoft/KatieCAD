@@ -2069,7 +2069,11 @@ class Ansicht3D(tk.Frame):
             m.add_command(label=tr("d3.ctx.eigenschaften"), command=self._ctx_eigenschaften)
             if len([x for x in self.app.auswahl if S.parameter(x)]) == 1:
                 m.add_command(label=tr("d3.ctx.mass"), command=self.massdialog)
+            m.add_command(label=tr("d3.ctx.verschieben_bp"),
+                          command=lambda: self.punkt_verschieben(False))
             m.add_command(label=tr("d3.ctx.kopieren"), command=self._ctx_kopieren)
+            m.add_command(label=tr("d3.ctx.kopieren_bp"),
+                          command=lambda: self.punkt_verschieben(True))
             if len([x for x in self.app.auswahl if S.ist_3d(x)]) >= 2:
                 m.add_command(label=tr("d3.ctx.verschmelzen"), command=self.verschmelzen)
             m.add_command(label=tr("d3.ctx.layer_aus"), command=self._ctx_layer_aus)

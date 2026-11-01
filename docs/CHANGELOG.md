@@ -1,7 +1,7 @@
 # Änderungen
 
 ## 1.1.2
-- Neu: **Verschieben/Kopieren von Punkt zu Punkt in 3D**: Basispunkt (z. B. Ecke) und Zielpunkt klicken, beide rasten auf Ecken, Kantenmitten und Zentren ein, mit gestrichelter Vorschau; Befehle V/M/CO und Menü Bearbeiten gelten im 3D-Fenster jetzt räumlich; neuer Knopf in der 3D-Leiste
+- Neu: **Verschieben/Kopieren von Punkt zu Punkt in 3D**: Basispunkt (z. B. Ecke) und Zielpunkt klicken, beide rasten auf Ecken, Kantenmitten und Zentren ein, mit gestrichelter Vorschau; Rechtsklick-Menü mit „Verschieben/Kopieren mit Basispunkt“; Befehle V/M/CO und Menü Bearbeiten gelten im 3D-Fenster jetzt räumlich; neuer Knopf in der 3D-Leiste
 - Neu: **Viewcube und „Verdeckt“-Knopf im Layout**: ausgewählter/aktiver 3D-Viewport zeigt oben rechts den Viewcube (Flächenklick = Standardansicht, Pfeile, freies Drehen) und einen Knopf zum Ausblenden verdeckter Kanten; nur am Bildschirm, nicht im Druck/PDF
 - Änderung: **Speichern-Fragen** bei ungespeicherten Änderungen (Öffnen, Beenden, Projekt öffnen/erstellen/schließen) nennen jetzt bei einem Projekt Projektname und Blatt und sagen, dass bei „Nein“ die Änderungen verloren gehen
 - Neu: **Meldungsfenster im Design des Programms** (Farbschema, Ja/Nein/Abbrechen, J/N-Tasten, Enter/Esc) statt der Systemfenster
