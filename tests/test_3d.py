@@ -467,4 +467,11 @@ _bm = core.Bemassung(0, 0, 30, 0, mx=15, my=5, richtung="horizontal", modell_ska
 check(_bm.text(1.0, False) == "300.00", "Bemassung modell_skala: Modellwert statt Papier-mm")
 check(core.Bemassung(**{k: v for k, v in _bm.to_dict().items() if k != "typ"}).modell_skala == 0.1, "Bemassung modell_skala Round-Trip")
 check(core.Bemassung(0, 0, 30, 0, mx=15, my=5, richtung="horizontal").text(1.0, False) == "30.00", "Bemassung ohne Skala unveraendert")
+for _k in ("dlg.masstext.titel", "dlg.masstext.gemessen", "dlg.masstext.label", "dlg.masstext.hinweis", "dlg.masstext.zurueck", "menu.bearbeiten.masstext", "msg.masstext.keine", "msg.masstext.gesetzt", "msg.masstext.zurueck"):
+    check(_k in I.TEXTE["de"] and _k in I.TEXTE["en"], _k)
+_bt = core.Bemassung(0, 0, 148.5, 0, mx=70, my=10, richtung="horizontal", text_override="150")
+check(_bt.text(1.0, False) == "150", "Maßtext: eigener Text")
+_bt.text_override = "ca. <> mm"
+check(_bt.text(1.0, False) == "ca. 148.50 mm", "Maßtext: <> = Messwert")
+check(core.BEFEHLE.get("MASSTEXT") == "masstext", "Befehl MASSTEXT") if hasattr(core, "BEFEHLE") else None
 print(f"test_3d - {ok} Checks bestanden")

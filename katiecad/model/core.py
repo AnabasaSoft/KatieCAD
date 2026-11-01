@@ -614,6 +614,7 @@ BEFEHLE = {
     "FANG": "fang", "SNAP": "fang", "RASTERFANG": "fang",
     "OFANG": "ofang", "OSNAP": "ofang", "OBJEKTFANG": "ofang",
     "ORTHO": "ortho",
+    "MASSTEXT": "masstext", "BEMTEXT": "masstext", "DIMTEXT": "masstext",
     "VERSCHIEBEN": "move", "V": "move", "MOVE": "move", "M": "move",
     "KOPIEREN": "copy", "KO": "copy", "COPY": "copy", "CO": "copy", "CP": "copy",
     "COPYBASE": "copybase", "KOPIERENBASIS": "copybase",

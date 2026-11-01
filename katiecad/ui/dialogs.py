@@ -219,6 +219,45 @@ class _LayoutNameDialog(tk.Toplevel):
         self.destroy()
 
 
+class MasstextDialog(tk.Toplevel):
+    """Free dimension text. result = text ("" = show the measured value again) or None."""
+
+    def __init__(self, parent, text, messwert):
+        super().__init__(parent)
+        self.result = None
+        self.title(tr("dlg.masstext.titel"))
+        self.transient(parent)
+        _modal(self)
+        self.configure(bg=FARBEN["bg_mittel"])
+        f = ttk.Frame(self, padding=12)
+        f.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(f, text=tr("dlg.masstext.gemessen", wert=messwert)).pack(anchor=tk.W)
+        ttk.Label(f, text=tr("dlg.masstext.label")).pack(anchor=tk.W, pady=(10, 0))
+        self.var = tk.StringVar(value=text)
+        e = ttk.Entry(f, textvariable=self.var, width=34)
+        e.pack(fill=tk.X, pady=4)
+        e.focus_set()
+        e.select_range(0, tk.END)
+        ttk.Label(f, text=tr("dlg.masstext.hinweis"), style="Hint.TLabel",
+                  wraplength=340, justify=tk.LEFT).pack(anchor=tk.W, pady=(2, 6))
+        bf = ttk.Frame(f)
+        bf.pack(pady=6)
+        ttk.Button(bf, text=tr("dlg.ok"), command=self._ok).pack(side=tk.LEFT, padx=4)
+        ttk.Button(bf, text=tr("dlg.masstext.zurueck"), command=self._zurueck).pack(side=tk.LEFT, padx=4)
+        ttk.Button(bf, text=tr("dlg.abbrechen"), command=self.destroy).pack(side=tk.LEFT, padx=4)
+        self.bind("<Return>", lambda ev: self._ok())
+        self.bind("<Escape>", lambda ev: self.destroy())
+        self.wait_window(self)
+
+    def _ok(self):
+        self.result = self.var.get()
+        self.destroy()
+
+    def _zurueck(self):
+        self.result = ""
+        self.destroy()
+
+
 # ============================================================
 # Sheet properties (name + installation location)
 # ============================================================
