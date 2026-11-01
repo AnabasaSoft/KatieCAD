@@ -3904,6 +3904,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self._op_klick(pt)
             self.entry_eingabe.focus_set()
             return
+        if self._vpw_klick(event):
+            return
         werkzeug = self.aktives_werkzeug.get()
         kind, vp = self._ctx()
         if self._viewport_modus and kind == "layout":
@@ -4591,6 +4593,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
 
     def on_drag_b1(self, event):
         self._maus_px = (event.x, event.y)
+        if getattr(self, "_vpw_drag", None):
+            self._vpw_ziehen(event)
+            return
         if self._griff_drag_el is not None:
             self._griff_bewegen_zu(event)
             return
@@ -4605,6 +4610,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             return
 
     def on_release(self, event):
+        if getattr(self, "_vpw_drag", None):
+            self._vpw_loslassen(event)
+            return
         if self._griff_drag_el is not None:
             self._griff_drag_el = None
             self._griff_drag_id = None
@@ -4757,6 +4765,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             for el in self.auswahl:
                 if isinstance(el, Viewport):
                     self._zeichne_viewport_griffe(el)
+            for vp in self._vpw_viewports():
+                self._vpw_zeichnen(vp)
             c.tag_lower("blatt")
         self._vorschau_neu()
         c.tag_raise("snapmarker")
@@ -5052,6 +5062,144 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 self.canvas.create_text(x, y, text=text, fill=self._effektive_zeichenfarbe(el),
                                         font=(UI_SCHRIFT, max(6, int(2.5 * skala * 2.2))),
                                         tags=("layout",))
+
+    # ---- view cube in the layout viewport (screen only, not printed) ----------
+    _VPW_GR = 30                  # half edge of the cube in pixels
+
+    def _vpw_viewports(self):
+        """3D viewports of the layout that show the view cube: active or selected ones."""
+        if not self._ist_layout():
+            return []
+        out = []
+        for vp in self.layout_elemente:
+            if (isinstance(vp, Viewport) and getattr(vp, "ansicht3d", None)
+                    and (vp.aktiv or vp in self.auswahl)):
+                l = self.layers.get(vp.layer)
+                if l and not l.sichtbar:
+                    continue
+                x1, y1 = self.mm_to_px(vp.x, vp.y + vp.hoehe)
+                x2, y2 = self.mm_to_px(vp.x + vp.breite, vp.y)
+                if x2 - x1 >= 150 and y2 - y1 >= 185:
+                    out.append(vp)
+        return out
+
+    def _vpw_geometrie(self, vp):
+        x1, y1 = self.mm_to_px(vp.x, vp.y + vp.hoehe)
+        x2, y2 = self.mm_to_px(vp.x + vp.breite, vp.y)
+        mx, my = max(x1, x2) - 64, min(y1, y2) + 68
+        gr = self._VPW_GR
+        R, a = gr + 16, 7
+        pfeile = {
+            "rechts": [(mx + R + a, my), (mx + R - a, my - a), (mx + R - a, my + a)],
+            "links": [(mx - R - a, my), (mx - R + a, my - a), (mx - R + a, my + a)],
+            "oben": [(mx, my - R - a), (mx - a, my - R + a), (mx + a, my - R + a)],
+            "unten": [(mx, my + R + a), (mx - a, my + R - a), (mx + a, my + R - a)],
+        }
+        knopf = (mx - 52, my + R + a + 8, mx + 52, my + R + a + 28)
+        return mx, my, gr, pfeile, knopf
+
+    def _vpw_kamera(self, vp):
+        from katiecad.model.geom3d import Kamera
+        a3 = vp.ansicht3d or {}
+        return Kamera(yaw=a3.get("yaw", -45.0), pitch=a3.get("pitch", 35.264))
+
+    def _vpw_zeichnen(self, vp):
+        from katiecad.model import geom3d as G3
+        c = self.canvas
+        mx, my, gr, pfeile, knopf = self._vpw_geometrie(vp)
+        kam = self._vpw_kamera(vp)
+        for name, pts, mitte, q in G3.wuerfel_zeichnung(kam, mx, my, gr):
+            flat = [v for p in pts for v in p]
+            c.create_polygon(*flat, fill=FARBEN["bg_hell"], outline=FARBEN["cyan"], width=1,
+                             tags=("layout", "vpwuerfel"))
+            if q > 0.35:
+                c.create_text(mitte[0], mitte[1], text=tr("d3.ansicht." + name),
+                              fill=FARBEN["cyan"], font=(UI_SCHRIFT, 7, "bold"),
+                              tags=("layout", "vpwuerfel"))
+        for pts in pfeile.values():
+            flat = [v for p in pts for v in p]
+            c.create_polygon(*flat, fill=FARBEN["cyan"], outline=FARBEN["cyan"],
+                             tags=("layout", "vpwuerfel"))
+        an = bool(vp.ansicht3d.get("verdeckt"))
+        c.create_rectangle(*knopf, outline=FARBEN["cyan"], width=1,
+                           fill=FARBEN["cyan"] if an else FARBEN["bg_hell"],
+                           tags=("layout", "vpwuerfel"))
+        c.create_text((knopf[0] + knopf[2]) / 2, (knopf[1] + knopf[3]) / 2,
+                      text=("\u2713 " if an else "") + tr("d3.vp.verdeckt_kurz"),
+                      fill=FARBEN["bg_hell"] if an else FARBEN["cyan"],
+                      font=(UI_SCHRIFT, 8, "bold"), tags=("layout", "vpwuerfel"))
+        c.tag_raise("vpwuerfel")
+
+    def _vpw_treffer(self, event):
+        """-> (viewport, art, name) for a click on the cube, an arrow or the button."""
+        from katiecad.model import geom3d as G3
+        for vp in self._vpw_viewports():
+            mx, my, gr, pfeile, knopf = self._vpw_geometrie(vp)
+            if knopf[0] <= event.x <= knopf[2] and knopf[1] <= event.y <= knopf[3]:
+                return vp, "knopf", None
+            for key, pts in pfeile.items():
+                if G3.punkt_in_polygon(event.x, event.y, pts) or math.hypot(
+                        event.x - sum(q[0] for q in pts) / 3,
+                        event.y - sum(q[1] for q in pts) / 3) < 10:
+                    return vp, "pfeil", key
+            name = G3.wuerfel_treffer(self._vpw_kamera(vp), mx, my, gr, event.x, event.y)
+            if name:
+                return vp, "flaeche", name
+            if math.hypot(event.x - mx, event.y - my) <= gr * 1.3:
+                return vp, "flaeche", None
+        return None
+
+    def _vpw_klick(self, event):
+        t = self._vpw_treffer(event) if self._ist_layout() else None
+        if t is None:
+            return False
+        vp, art, name = t
+        self._vpw_drag = {"vp": vp, "art": art, "name": name, "x": event.x, "y": event.y,
+                          "bewegt": False, "snap": False}
+        return True
+
+    def _vpw_ziehen(self, event):
+        d = self._vpw_drag
+        if d["art"] == "knopf" or d["art"] == "pfeil":
+            return
+        if not d["bewegt"] and abs(event.x - d["x"]) + abs(event.y - d["y"]) < 4:
+            return
+        vp = d["vp"]
+        if not d["snap"]:
+            self._snapshot()
+            d["snap"] = True
+        d["bewegt"] = True
+        k = self._vpw_kamera(vp)
+        k.orbit(event.x - d["x"], event.y - d["y"])
+        vp.ansicht3d["yaw"], vp.ansicht3d["pitch"] = k.yaw, k.pitch
+        d["x"], d["y"] = event.x, event.y
+        self._vp_bewegt = True                  # fast wireframe while turning
+        self.redraw()
+
+    def _vpw_loslassen(self, event):
+        d = self._vpw_drag
+        self._vpw_drag = None
+        vp = d["vp"]
+        if d["bewegt"]:
+            self._vp_bewegt = False
+            self.redraw()
+            return
+        if d["art"] == "knopf":
+            self._vp_3d_verdeckt(vp)
+        elif d["art"] == "flaeche" and d["name"]:
+            self._vp_3d_ansicht(vp, d["name"])
+        elif d["art"] == "pfeil":
+            a3 = vp.ansicht3d
+            self._snapshot()
+            if d["name"] == "rechts":
+                a3["yaw"] = (round(a3.get("yaw", 0.0) / 90.0) * 90.0 + 90.0) % 360.0
+            elif d["name"] == "links":
+                a3["yaw"] = (round(a3.get("yaw", 0.0) / 90.0) * 90.0 - 90.0) % 360.0
+            elif d["name"] == "oben":
+                a3["pitch"] = min(90.0, a3.get("pitch", 0.0) + 45.0)
+            elif d["name"] == "unten":
+                a3["pitch"] = max(-90.0, a3.get("pitch", 0.0) - 45.0)
+            self.redraw()
 
     def _vp_3d_ansicht(self, vp, name):
         """Standard 3D view in a viewport (fits the model)."""

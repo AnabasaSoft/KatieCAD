@@ -2140,6 +2140,8 @@ class Ansicht3DMixin:
         self._snapshot()
         if an and not vp.ansicht3d:
             S.vp_ansicht_setzen(vp, self.elemente, -45.0, 35.264, False)
+            if not vp.aktiv and vp not in self.auswahl:
+                self.auswahl = [vp]                  # shows the view cube of the viewport
             self.status.set(tr("d3.vp.an"))
         elif not an:
             vp.ansicht3d = None

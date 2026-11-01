@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.2
+- Neu: **Viewcube und „Verdeckt“-Knopf im Layout**: ausgewählter/aktiver 3D-Viewport zeigt oben rechts den Viewcube (Flächenklick = Standardansicht, Pfeile, freies Drehen) und einen Knopf zum Ausblenden verdeckter Kanten; nur am Bildschirm, nicht im Druck/PDF
 - Änderung: **Speichern-Fragen** bei ungespeicherten Änderungen (Öffnen, Beenden, Projekt öffnen/erstellen/schließen) nennen jetzt bei einem Projekt Projektname und Blatt und sagen, dass bei „Nein“ die Änderungen verloren gehen
 - Neu: **Meldungsfenster im Design des Programms** (Farbschema, Ja/Nein/Abbrechen, J/N-Tasten, Enter/Esc) statt der Systemfenster
 - Änderung: **Datei › Neu** fragt immer nach: bei ungespeicherten Änderungen „Änderungen speichern?“ (Ja/Nein/Abbrechen), sonst eine klare Bestätigung (Standard: Nein); in einem Projekt wird beim Klick auf Neu das **gesamte Projekt geschlossen** (vorher Frage „Änderungen im Projekt speichern?“), Blätter verwaltet man nur über die Seitenleiste
