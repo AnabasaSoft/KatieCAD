@@ -19,6 +19,7 @@ unten machen das bereits. Eigene Blöcke legst du weiter im Block-Browser/Projek
 2. Installer: Inno Setup installieren, `installer\KatieCAD.iss` öffnen, „Compile“
    (oder `iscc /DAppVersion=1.1.0 installer\KatieCAD.iss`) → `release\KatieCAD-1.1.0-Windows-Setup.exe`
    Das Skript nimmt den ganzen Ordner `dist\KatieCAD` mit, also auch alle Bibliotheken.
+   Die Installer-Bilder (`installer\wizard_*.bmp`) entstehen aus `installer\KatieCAD_Setup_Banner.png` mit `python tools/make_installer_images.py` (nur nötig, wenn das Banner geändert wird).
 
 ## Linux
 1. `sh installer/build_unix.sh` → `dist/KatieCAD/KatieCAD`
