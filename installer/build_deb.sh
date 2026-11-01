@@ -7,10 +7,11 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PKG="$ROOT/build/deb/katiecad_${VER}_${ARCH}"
 rm -rf "$PKG"
 mkdir -p "$PKG/DEBIAN" "$PKG/opt/katiecad" "$PKG/usr/bin" \
-         "$PKG/usr/share/applications" "$PKG/usr/share/icons/hicolor/256x256/apps"
+         "$PKG/usr/share/applications" "$PKG/usr/share/icons/hicolor/256x256/apps" "$PKG/usr/share/pixmaps"
 cp -r "$ROOT/dist/KatieCAD/." "$PKG/opt/katiecad/"
 ln -s /opt/katiecad/KatieCAD "$PKG/usr/bin/katiecad"
 cp "$ROOT/KatieCAD.png" "$PKG/usr/share/icons/hicolor/256x256/apps/katiecad.png"
+cp "$ROOT/KatieCAD.png" "$PKG/usr/share/pixmaps/katiecad.png"
 cat > "$PKG/usr/share/applications/io.github.merecete.KatieCAD.desktop" <<DESK
 [Desktop Entry]
 Type=Application
@@ -67,6 +68,9 @@ cat > "$PKG/DEBIAN/$T" <<'POST'
 set -e
 if command -v appstreamcli >/dev/null 2>&1; then
   appstreamcli refresh-cache --force >/dev/null 2>&1 || true
+fi
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database -q /usr/share/applications >/dev/null 2>&1 || true
 fi
 if command -v gtk-update-icon-cache >/dev/null 2>&1; then
   gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor >/dev/null 2>&1 || true
