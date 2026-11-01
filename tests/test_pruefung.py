@@ -173,6 +173,23 @@ def test_skalieren_spiegeln():
     assert b.gespiegelt is False
 
 
+def test_klemme_felder_ausblenden():
+    from katiecad.model.core import Klemme
+    w = {"IND": "X1", "TYP": "WDU", "PER": "2.5", "NUM": "1"}
+
+    def texte(**kw):
+        return [(k.inhalt, round(k.y, 1)) for k in Klemme(0, 0, w, **kw).aufgeloest()
+                if hasattr(k, "inhalt")]
+    assert [t for t, _ in texte()] == ["X1", "WDU", "2.5", "1"]       # order as before
+    assert texte(ausgeblendet=["TYP"]) == [("X1", 0.0), ("2.5", -3.0), ("1", 0.0)]   # no gap
+    assert [t for t, _ in texte(ausgeblendet=["IND", "NUM"])] == ["WDU", "2.5"]
+    k = Klemme(0, 0, dict(w, MAN="Hager"), ausgeblendet=["MAN"])
+    assert [round(x.y, 1) for x in k.aufgeloest() if hasattr(x, "inhalt")][1:3] == [-3.0, -5.5]
+    d = k.to_dict(); d.pop("typ")
+    assert Klemme(**d).ausgeblendet == {"MAN"}
+    assert k.werte["MAN"] == "Hager"                        # the value stays (lists use it)
+
+
 def test_dxf_projekt_mit_texten():
     """Regression: the PDF page code gives texts font arguments; the DXF page must accept them."""
     from types import SimpleNamespace

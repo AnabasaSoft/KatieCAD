@@ -386,6 +386,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self._mk_rolle = "haupt"
         self._mk_spiegel = "liste"
         self._kl_werte = {}
+        self._kl_aus = set()          # hidden fields of the next terminal
+        self._mk_aus = set()          # hidden fields of the next device mask
         self._vp_richtungen = (0, 90, 180, 270)
         self._kabel_p1 = None
         self._kb_werte = {}
@@ -9770,18 +9772,21 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                               ElektroMaske.FELDER, self._mk_werte,
                               rolle=self._mk_rolle,
                               hinweis=tr("dlg.maske.hinweis"),
-                              spiegel=getattr(self, "_mk_spiegel", "liste"))
+                              spiegel=getattr(self, "_mk_spiegel", "liste"),
+                              ausgeblendet=getattr(self, "_mk_aus", set()))
         if dlg.result is None:
             return
         self._mk_werte = dict(dlg.result["werte"])
         self._mk_rolle = dlg.result["rolle"]
         self._mk_spiegel = dlg.result["spiegel"] or "liste"
+        self._mk_aus = set(dlg.result.get("ausgeblendet", ()))
         self._snapshot()
         daten = self._layer_daten_fuer(E_DEVICES)
         daten["staerke"] = None
         self._ziel_liste().append(
             ElektroMaske(x, y, dlg.result["werte"], rolle=dlg.result["rolle"],
-                         spiegel=getattr(self, "_mk_spiegel", "liste"), **daten))
+                         spiegel=getattr(self, "_mk_spiegel", "liste"),
+                         ausgeblendet=getattr(self, "_mk_aus", set()), **daten))
         self.redraw()
         self.status.set(tr("msg.maske.gesetzt"))
 
@@ -9789,14 +9794,16 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         vor = dict(self._kl_werte)
         dlg = FestMaskeDialog(self.root, tr("dlg.klemme.titel"),
                               Klemme.FELDER, vor,
-                              hinweis=tr("dlg.klemme.hinweis"))
+                              hinweis=tr("dlg.klemme.hinweis"),
+                              ausgeblendet=getattr(self, "_kl_aus", set()))
         if dlg.result is None:
             return
         w = dict(dlg.result["werte"])
+        self._kl_aus = set(dlg.result.get("ausgeblendet", ()))
         self._snapshot()
         daten = self._layer_daten_fuer(E_CLAMPS)
         daten["staerke"] = None
-        kl = Klemme(x, y, w, **daten)
+        kl = Klemme(x, y, w, ausgeblendet=getattr(self, "_kl_aus", set()), **daten)
         self._ziel_liste().append(kl)
         n_ein = self._einrasten([kl])
         w["NUM"] = naechste_bezeichnung(w.get("NUM", ""))
@@ -9887,11 +9894,14 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             el.FELDER, el.werte, rolle=el.rolle if ist_maske else None,
             spiegel=el.spiegel if ist_maske else None,
             hinweis=tr("dlg.maske.hinweis") if ist_maske
-            else tr("dlg.klemme.hinweis"))
+            else tr("dlg.klemme.hinweis"),
+            ausgeblendet=el.ausgeblendet)
         if dlg.result is None:
             return
         self._snapshot()
         el.setze_werte(dlg.result["werte"])
+        el.ausgeblendet = {t for t in dlg.result.get("ausgeblendet", el.ausgeblendet)
+                           if t in el.FELDER}
         if ist_maske and dlg.result["rolle"]:
             el.rolle = dlg.result["rolle"]
             neu = dlg.result["spiegel"] or "liste"
@@ -9910,7 +9920,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             ghost = self._neue_verbindung(pt[0], pt[1])
         elif wz == "maske":
             ghost = ElektroMaske(pt[0], pt[1], self._mk_werte,
-                                 rolle=self._mk_rolle,
+                                 rolle=self._mk_rolle, ausgeblendet=getattr(self, "_mk_aus", set()),
                                  layer=self.aktiver_layer.get())
         elif wz == "koordinatenfeld":
             ghost = Koordinatenfeld(pt[0], pt[1], **self._kf_werte,
@@ -9926,7 +9936,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                               layer=self.aktiver_layer.get())
             kabel_kreuzungen(list(self.elemente) + [ghost])
         else:
-            ghost = Klemme(pt[0], pt[1], self._kl_werte,
+            ghost = Klemme(pt[0], pt[1], self._kl_werte, ausgeblendet=getattr(self, "_kl_aus", set()),
                            layer=self.aktiver_layer.get())
         self._clear_temp()
         for k in (ghost.aufgeloest(umriss=True) if wz == "koordinatenfeld"

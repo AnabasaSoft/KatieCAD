@@ -3091,10 +3091,11 @@ class FestMaskeDialog(tk.Toplevel):
     result: {'werte': {...}, 'rolle': ...} or None."""
 
     def __init__(self, parent, titel, felder, werte=None, rolle=None, hinweis="",
-                 zusatz=(), spiegel=None):
+                 zusatz=(), spiegel=None, ausgeblendet=None):
         super().__init__(parent)
         self.result = None
         werte = werte or {}
+        # ausgeblendet: set of hidden tags -> check box "show" per field (None = no boxes)
         self.title(titel)
         self.transient(parent)
         _modal(self)
@@ -3102,7 +3103,7 @@ class FestMaskeDialog(tk.Toplevel):
         self.resizable(False, False)
         f = ttk.Frame(self, padding=14)
         f.pack(fill=tk.BOTH, expand=True)
-        self._vars, self._entries = {}, []
+        self._vars, self._entries, self._sicht = {}, [], {}
         for i, tag in enumerate(felder):
             ttk.Label(f, text=tag + ":").grid(row=i, column=0, sticky=tk.W, pady=3, padx=(0, 10))
             var = tk.StringVar(value=werte.get(tag, ""))
@@ -3110,6 +3111,11 @@ class FestMaskeDialog(tk.Toplevel):
             e.grid(row=i, column=1, sticky=tk.EW, pady=3)
             self._vars[tag] = var
             self._entries.append(e)
+            if ausgeblendet is not None:
+                sv = tk.BooleanVar(value=tag not in ausgeblendet)
+                ttk.Checkbutton(f, text=tr("dlg.attedit.anzeigen"), variable=sv).grid(
+                    row=i, column=2, sticky=tk.W, padx=(10, 0))
+                self._sicht[tag] = sv
         row = len(felder)
         self.v_rolle = tk.StringVar(value=rolle or "haupt")
         self._rolle = rolle is not None
@@ -3160,7 +3166,8 @@ class FestMaskeDialog(tk.Toplevel):
         self.result = {"werte": {t: v.get().strip() for t, v in self._vars.items()},
                        "rolle": self.v_rolle.get() if self._rolle else None,
                        "spiegel": self.v_spiegel.get() if self._spiegel else None,
-                       "zusatz": {k: v.get().strip() for k, v in self._zvars.items()}}
+                       "zusatz": {k: v.get().strip() for k, v in self._zvars.items()},
+                       "ausgeblendet": {t for t, v in self._sicht.items() if not v.get()}}
         self.destroy()
 
 

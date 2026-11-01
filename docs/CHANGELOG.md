@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.2
+- Neu: **Klemmen (und Geräte-Masken) mit „anzeigen“-Haken je Feld** (IND, MAN, TYP, PER, NUM): ausgeblendete Felder bleiben für Listen und Auswertung erhalten, erscheinen aber nicht in der Zeichnung; die übrigen rücken ohne Lücke nach
 - Fix: **Projekt als DXF exportieren** brach mit „Es konnte keine Seite erzeugt werden“ ab (seit den Schriftarten in 1.1.1 bekam die DXF-Seite Schrift-Parameter, die sie nicht kannte); die Meldung nennt jetzt außerdem den eigentlichen Grund
 - Neu: **Windows-Installer mit KatieCAD-Banner**: Willkommens- und Abschlussseite zeigen Maskottchen und Logo, die übrigen Seiten das Maskottchen oben rechts (mehrere Größen für hohe Bildschirmauflösung), eigener Willkommenstext, Herausgeber- und Support-Links; Bilder aus `installer/KatieCAD_Setup_Banner.png` per `tools/make_installer_images.py`
 - Neu: **Linux-AppImage**: das Programm als eine einzelne, direkt startbare Datei (`KatieCAD-<Version>-Linux-x86_64.AppImage`), ohne Ordner und Installation; wird vom Release-Workflow zusammen mit .deb und .tar.gz gebaut (`installer/build_appimage.sh`)

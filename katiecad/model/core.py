@@ -3613,14 +3613,16 @@ class Klemme(_FestMaske):
         super().__init__("klemme", x, y, werte, **kw)
 
     def _zeilen(self):
-        if not self.werte.get("MAN", ""):
-            return self.ZEILEN
-        out = []
-        for z in self.ZEILEN:
-            if z[0] in ("TYP", "PER"):
-                z = (z[0], z[1], z[2] - 2.5, z[3], z[4])
-            out.append(z)
-        out.insert(1, ("MAN", -3.0, -3.0, 1.5, "mitte_rechts"))
+        """IND at the circle; MAN (only when filled in), TYP and PER below it, one line each.
+        Hidden fields leave no gap: the visible ones move up."""
+        out = [z for z in self.ZEILEN if z[0] == "IND"]
+        y = -3.0
+        for tag in ("MAN", "TYP", "PER"):
+            if tag in self.ausgeblendet or (tag == "MAN" and not self.werte.get("MAN", "")):
+                continue
+            out.append((tag, -3.0, y, 1.5, "mitte_rechts"))
+            y -= 2.5
+        out.extend(z for z in self.ZEILEN if z[0] == "NUM")
         return out
 
     def aufgeloest(self, platzhalter=None):
