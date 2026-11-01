@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.2
+- Fix: **Projekt als DXF exportieren** brach mit „Es konnte keine Seite erzeugt werden“ ab (seit den Schriftarten in 1.1.1 bekam die DXF-Seite Schrift-Parameter, die sie nicht kannte); die Meldung nennt jetzt außerdem den eigentlichen Grund
 - Neu: **Windows-Installer mit KatieCAD-Banner**: Willkommens- und Abschlussseite zeigen Maskottchen und Logo, die übrigen Seiten das Maskottchen oben rechts (mehrere Größen für hohe Bildschirmauflösung), eigener Willkommenstext, Herausgeber- und Support-Links; Bilder aus `installer/KatieCAD_Setup_Banner.png` per `tools/make_installer_images.py`
 - Neu: **Linux-AppImage**: das Programm als eine einzelne, direkt startbare Datei (`KatieCAD-<Version>-Linux-x86_64.AppImage`), ohne Ordner und Installation; wird vom Release-Workflow zusammen mit .deb und .tar.gz gebaut (`installer/build_appimage.sh`)
 - Änderung: **Mindestgröße des Hauptfensters** (1010 × 600 Pixel, auf kleinen Bildschirmen bis zur Bildschirmgröße); das Fenster lässt sich nicht mehr so klein ziehen, dass das Programm unbedienbar wird

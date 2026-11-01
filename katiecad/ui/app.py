@@ -10300,7 +10300,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             seiten, uebersprungen = seiten_sammeln(
                 [(n, c) for _, n, c in kontexte], False)
             if not seiten:
-                raise ValueError(tr("msg.druckp.keine_seiten"))
+                from katiecad.fileio import dxf_projekt as _dp
+                raise ValueError(tr("msg.druckp.keine_seiten")
+                                 + ("\n\n" + _dp.FEHLER[0] if _dp.FEHLER else ""))
             doc = ezdxf.new(dxfversion="R2010")
             dxf_projekt_schreiben(doc, seiten, spalten=4)
             doc.saveas(pfad)

@@ -173,6 +173,23 @@ def test_skalieren_spiegeln():
     assert b.gespiegelt is False
 
 
+def test_dxf_projekt_mit_texten():
+    """Regression: the PDF page code gives texts font arguments; the DXF page must accept them."""
+    from types import SimpleNamespace
+    from katiecad.model import core
+    from katiecad.model.core import Layout, Layer
+    from katiecad.fileio import dxf_projekt as D
+    lay = Layout("L1", Layout.STANDARD_FORMAT, "#1c132d")
+    lay.elemente.append(core.Text(20, 20, "Titel", 5.0))
+    lay.elemente.append(core.Linie(0, 0, 100, 100))
+    ctx = SimpleNamespace(elemente=[], layers={"0": Layer("0", "#c29bff", 0.35, True)},
+                          layouts=[lay], aktives_layout=0, _einh_faktor=lambda: 1.0,
+                          dezimalkomma=SimpleNamespace(get=lambda: True), bericht=False)
+    seiten, uebersprungen = D.seiten_sammeln([("001 Test", ctx)], False)
+    assert len(seiten) == 1 and not uebersprungen, D.FEHLER
+    assert any(op[0] == "t" for op in seiten[0][1].ops)
+
+
 def test_dxf_projekt_und_log():
     import sys
     from katiecad.fileio.dxf_projekt import (DxfSeite, dxf_projekt_schreiben,

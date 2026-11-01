@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.2
+- Fix: **export project as DXF** failed with "No page could be created" (since the fonts of 1.1.1 the DXF page received font arguments it did not know); the message now also names the actual reason
 - New: **Windows installer with the KatieCAD banner**: welcome and finish page show mascot and logo, the other pages the mascot at the top right (several sizes for high screen resolutions), own welcome text, publisher and support links; images made from `installer/KatieCAD_Setup_Banner.png` by `tools/make_installer_images.py`
 - New: **Linux AppImage**: the program as a single, directly runnable file (`KatieCAD-<version>-Linux-x86_64.AppImage`), no folder and no installation; built by the release workflow together with .deb and .tar.gz (`installer/build_appimage.sh`)
 - Change: **minimum size of the main window** (1010 × 600 pixels, down to the screen size on small screens); the window can no longer be made so small that the program becomes unusable

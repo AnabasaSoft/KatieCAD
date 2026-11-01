@@ -66,6 +66,10 @@ class DxfSeite:
         if self._clips:
             self._clips.pop()
 
+    def bild(self, *args, **kwargs):
+        """Images are not written to the project DXF (the PDF has them)."""
+        return None
+
     def _clip(self):
         return self._clips[-1] if self._clips else None
 
@@ -93,7 +97,9 @@ class DxfSeite:
         if len(poly) >= 3:
             self.ops.append(("f", poly, farbe))
 
-    def text(self, x, y, inhalt, hoehe, winkel=0.0, farbe="#000000", mitte=False):
+    def text(self, x, y, inhalt, hoehe, winkel=0.0, farbe="#000000", mitte=False,
+             fett=False, familie=""):
+        # fett / familie (font of the text in the PDF) have no meaning in the DXF file
         c = self._clip()
         if c and not (c[0] <= x <= c[2] and c[1] <= y <= c[3]):
             return
@@ -129,15 +135,22 @@ def gitter_positionen(n, zelle_b, zelle_h, spalten=4, abstand=50.0):
     return out
 
 
+FEHLER = []          # reasons of the sheets skipped by the last seiten_sammeln call
+
+
 def seiten_sammeln(kontexte, vp_rahmen=False):
-    """kontexte: [(name, ctx)] -> ([(name, DxfSeite)], skipped names)."""
+    """kontexte: [(name, ctx)] -> ([(name, DxfSeite)], skipped names).
+    The reasons of skipped sheets are left in FEHLER."""
     seiten, uebersprungen = [], []
+    del FEHLER[:]
     for name, ctx in kontexte:
         try:
             seiten.append((name, pdf_seite_erzeugen(
                 ctx, "layout", True, vp_rahmen, seite_klasse=DxfSeite)))
-        except Exception:
+        except Exception as ex:
             uebersprungen.append(name)
+            FEHLER.append(f"{name}: {type(ex).__name__}: {ex}")
+            print(f"[KatieCAD] DXF Blatt {name}: {type(ex).__name__}: {ex}")
     return seiten, uebersprungen
 
 
