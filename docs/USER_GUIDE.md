@@ -294,6 +294,12 @@ matched. Note: a device drawn **only** single-pole appears in no list - count it
 multi-pole symbol or leave the tick off. If you change the identifier of the multi-pole
 symbol, change it in the single-pole one by hand.
 
+**Number of poles:** for your own devices enter it in the same dialog in the field
+**Number of poles** (e.g. `3` or `3+N`; the field is active once the tick is set). It is
+shown as `/3` above the identifier (IND) and can be moved like the other mask texts.
+Symbols from the "12 Single-pole" library have the attribute **POLE** instead (a stroke
+on the line with the number); then the field does not appear twice.
+
 ### Wires
 
 - **Automatic:** if two connection points (pins, junctions, terminals, cross

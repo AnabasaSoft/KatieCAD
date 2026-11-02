@@ -1939,9 +1939,11 @@ class BlockAttributeDialog(tk.Toplevel):
         self.rolle = None
         self.spiegel = None
         self.einpolig = None
+        self.pole = None
         self._v_spiegel = None
         self._v_rolle = None
         self._v_einpolig = None
+        self._v_pole = None
         maske = ref.geraet_maske() if hasattr(ref, "geraet_maske") else None
         if maske is not None:
             self._v_rolle = tk.StringVar(value=maske.rolle)
@@ -1968,6 +1970,20 @@ class BlockAttributeDialog(tk.Toplevel):
                             variable=self._v_einpolig).grid(
                 row=zeile, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
             zeile += 1
+            # own devices: pole count in the mask (symbols with an attribute POLE use that)
+            if not any(ad.tag == "POLE" for ad in ref.attribut_definitionen()):
+                self._v_pole = tk.StringVar(value=getattr(maske, "pole", ""))
+                ttk.Label(f, text=tr("dlg.maske.pole")).grid(
+                    row=zeile, column=0, sticky=tk.W, pady=(0, 2))
+                e_pole = ttk.Entry(f, textvariable=self._v_pole, width=12)
+                e_pole.grid(row=zeile, column=1, sticky=tk.W, pady=(0, 2))
+                zeile += 1
+
+                def pole_status(*_):
+                    e_pole.configure(
+                        state="normal" if self._v_einpolig.get() else "disabled")
+                self._v_einpolig.trace_add("write", pole_status)
+                pole_status()
 
         bf = ttk.Frame(aussen)                        # buttons stay visible
         bf.pack(pady=(10, 0))
@@ -1993,6 +2009,8 @@ class BlockAttributeDialog(tk.Toplevel):
             self.spiegel = self._v_spiegel.get()
         if self._v_einpolig is not None:
             self.einpolig = bool(self._v_einpolig.get())
+        if self._v_pole is not None:
+            self.pole = self._v_pole.get().strip()
         self.result = {t: v.get() for t, v in self._vars.items()}
         # Tags whose text is to be hidden in this instance
         self.ausgeblendet = {t for t, v in self._sicht.items() if not v.get()}
@@ -3329,7 +3347,7 @@ class FestMaskeDialog(tk.Toplevel):
     result: {'werte': {...}, 'rolle': ...} or None."""
 
     def __init__(self, parent, titel, felder, werte=None, rolle=None, hinweis="",
-                 zusatz=(), spiegel=None, ausgeblendet=None, einpolig=None):
+                 zusatz=(), spiegel=None, ausgeblendet=None, einpolig=None, pole=None):
         super().__init__(parent)
         self.result = None
         werte = werte or {}
@@ -3383,6 +3401,20 @@ class FestMaskeDialog(tk.Toplevel):
                             variable=self.v_einpolig).grid(
                 row=row, column=0, columnspan=3, sticky=tk.W, pady=(6, 0))
             row += 1
+        self.v_pole = tk.StringVar(value=pole or "")
+        self._pole = pole is not None and self._einpolig
+        if self._pole:
+            ttk.Label(f, text=tr("dlg.maske.pole")).grid(
+                row=row, column=0, sticky=tk.W, pady=2, padx=(0, 10))
+            self._e_pole = ttk.Entry(f, textvariable=self.v_pole, width=12)
+            self._e_pole.grid(row=row, column=1, sticky=tk.W, pady=2)
+            row += 1
+
+            def pole_status(*_):
+                self._e_pole.configure(
+                    state="normal" if self.v_einpolig.get() else "disabled")
+            self.v_einpolig.trace_add("write", pole_status)
+            pole_status()
         self._zvars = {}
         for key, label, wert in zusatz:       # further input fields (e.g. cores)
             ttk.Label(f, text=label).grid(row=row, column=0, sticky=tk.W, pady=2, padx=(0, 10))
@@ -3412,6 +3444,7 @@ class FestMaskeDialog(tk.Toplevel):
                        "rolle": self.v_rolle.get() if self._rolle else None,
                        "spiegel": self.v_spiegel.get() if self._spiegel else None,
                        "einpolig": bool(self.v_einpolig.get()) if self._einpolig else None,
+                       "pole": self.v_pole.get().strip() if self._pole else None,
                        "zusatz": {k: v.get().strip() for k, v in self._zvars.items()},
                        "ausgeblendet": {t for t, v in self._sicht.items() if not v.get()}}
         self.destroy()

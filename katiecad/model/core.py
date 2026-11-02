@@ -4077,8 +4077,11 @@ class ElektroMaske(_FestMaske):
     ZEILEN = ()
 
     def __init__(self, x, y, werte=None, rolle="haupt", spiegel="liste",
-                 sp_dx=0.0, sp_dy=0.0, **kw):
+                 sp_dx=0.0, sp_dy=0.0, pole="", **kw):
         super().__init__("maske", x, y, werte, **kw)
+        # Number of poles of a single-pole representation (e.g. "3", "3+N"),
+        # shown as "/3" above IND; only used if `einpolig` is set
+        self.pole = str(pole or "").strip()
         self.rolle = rolle if rolle in self.ROLLEN else "haupt"
         self.spiegel = spiegel if spiegel in self.SPIEGEL else "liste"
         self.sp_dx, self.sp_dy = float(sp_dx), float(sp_dy)   # mirror offset
@@ -4089,6 +4092,8 @@ class ElektroMaske(_FestMaske):
         d = super().to_dict()
         d.pop("kontakte", None)
         d.pop("sym_bbox", None)
+        if not self.pole:
+            d.pop("pole", None)
         return d
 
     def _spiegel_aktiv(self):
@@ -4246,6 +4251,10 @@ class ElektroMaske(_FestMaske):
             if tag in self.ausgeblendet or w == "":
                 continue
             out.append(self._t(tag, self.x, y, w, self.HOEHEN[tag],
+                               "mitte_rechts", st))
+        if self.einpolig and self.pole:
+            # pole count of the single-pole representation: "/3" above IND
+            out.append(self._t("POLE", self.x, y + 3.0, "/" + self.pole, 2.0,
                                "mitte_rechts", st))
         if not out and ph:
             r = 0.8

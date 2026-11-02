@@ -9896,6 +9896,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 m.rolle = dlg.rolle
             if m is not None and dlg.einpolig is not None:
                 m.einpolig = dlg.einpolig
+            if m is not None and dlg.pole is not None:
+                m.pole = dlg.pole
             if m is not None and dlg.spiegel:
                 if m.spiegel != dlg.spiegel:
                     ref.sp_dx = ref.sp_dy = 0.0
@@ -9926,6 +9928,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             m.rolle = dlg.rolle
         if m is not None and dlg.einpolig is not None:
             m.einpolig = dlg.einpolig
+        if m is not None and dlg.pole is not None:
+            m.pole = dlg.pole
         if m is not None and dlg.spiegel:
             if m.spiegel != dlg.spiegel:
                 ref.sp_dx = ref.sp_dy = 0.0
@@ -10222,10 +10226,12 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                               hinweis=tr("dlg.maske.hinweis"),
                               spiegel=getattr(self, "_mk_spiegel", "liste"),
                               ausgeblendet=getattr(self, "_mk_aus", set()),
-                              einpolig=getattr(self, "_mk_einpolig", False))
+                              einpolig=getattr(self, "_mk_einpolig", False),
+                              pole=getattr(self, "_mk_pole", ""))
         if dlg.result is None:
             return
         self._mk_einpolig = bool(dlg.result.get("einpolig"))
+        self._mk_pole = dlg.result.get("pole") or ""
         self._mk_werte = dict(dlg.result["werte"])
         self._mk_rolle = dlg.result["rolle"]
         self._mk_spiegel = dlg.result["spiegel"] or "liste"
@@ -10237,7 +10243,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             ElektroMaske(x, y, dlg.result["werte"], rolle=dlg.result["rolle"],
                          spiegel=getattr(self, "_mk_spiegel", "liste"),
                          ausgeblendet=getattr(self, "_mk_aus", set()),
-                         einpolig=self._mk_einpolig, **daten))
+                         einpolig=self._mk_einpolig, pole=self._mk_pole, **daten))
         self.redraw()
         self.status.set(tr("msg.maske.gesetzt"))
 
@@ -10353,7 +10359,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             spiegel=el.spiegel if ist_maske else None,
             hinweis=tr("dlg.maske.hinweis") if ist_maske
             else tr("dlg.klemme.hinweis"),
-            ausgeblendet=el.ausgeblendet, einpolig=el.einpolig)
+            ausgeblendet=el.ausgeblendet, einpolig=el.einpolig,
+            pole=el.pole if ist_maske else None)
         if dlg.result is None:
             return
         self._snapshot()
@@ -10362,6 +10369,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                            if t in el.FELDER}
         if dlg.result.get("einpolig") is not None:
             el.einpolig = dlg.result["einpolig"]
+        if ist_maske and dlg.result.get("pole") is not None:
+            el.pole = dlg.result["pole"]
         if ist_maske and dlg.result["rolle"]:
             el.rolle = dlg.result["rolle"]
             neu = dlg.result["spiegel"] or "liste"
