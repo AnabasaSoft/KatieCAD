@@ -104,9 +104,9 @@ check(DS.sps_liste(n, [(0, [e])], nr) == [], "SPS-Liste ignoriert einpolig")
 # ---- pole count in the mask (own devices) --------------------------------
 mp = core.ElektroMaske(0, 0, {"IND": "-F1"}, einpolig=True, pole="3+N")
 texte = [e.inhalt for e in mp.aufgeloest(True)]
-check("/3+N" in texte, f"Polzahl sichtbar: {texte}")
+check("3+N" in texte, f"Polzahl sichtbar: {texte}")
 mp2 = core.ElektroMaske(0, 0, {"IND": "-F1"}, einpolig=False, pole="3")
-check(not [e for e in mp2.aufgeloest(True) if getattr(e, "inhalt", "") == "/3"], "ohne Haekchen keine Polzahl")
+check(not [e for e in mp2.aufgeloest(True) if getattr(e, "inhalt", "") == "3"], "ohne Haekchen keine Polzahl")
 check("pole" not in core.ElektroMaske(0, 0).to_dict() and mp.to_dict()["pole"] == "3+N", "Speichern: pole nur wenn gesetzt")
 mp3 = core.ElektroMaske(**{x: y for x, y in mp.to_dict().items() if x != "typ"})
 check(mp3.pole == "3+N" and mp3.einpolig, "Laden: pole")

@@ -2,8 +2,8 @@
 
 ## 1.1.3
 - Neu: **F1 öffnet eine Übersicht aller Tastenkürzel, Maus-Aktionen und Befehle** (scrollbar, mit Suchfeld; auch Hilfe › Tastenkürzel und Befehle). Die Befehlsliste wird aus der Befehlstabelle des Programms erzeugt und bleibt dadurch vollständig
-- Neu: Generator `tools/make_symbols_einpolig.py` für **einpolige Symbole** (Ordner „12 Single-pole“, Attribut POLE für die Polzahl, Häkchen „Einpolige Darstellung“ schon gesetzt); schreibt nur in einen eigenen Ausgabeordner
-- Neu: **Polzahl bei eigenen einpoligen Geräten** (Feld „Polzahl“ im Gerätedialog, z. B. 3 oder 3+N, Anzeige „/3“ über der Kennzeichnung)
+- Neu: Generator `tools/make_symbols_einpolig.py` für **einpolige Symbole** (Ordner „12 Single-pole“, Attribut POLE für die Polzahl, Attribut STRICH für den Polstrich „/“ (leer = ohne Strich), Häkchen „Einpolige Darstellung“ schon gesetzt); schreibt nur in einen eigenen Ausgabeordner
+- Neu: **Polzahl bei eigenen einpoligen Geräten** (Feld „Polzahl“ im Gerätedialog, z. B. 3 oder 3+N, Anzeige genau wie getippt über der Kennzeichnung)
 - Neu: **Einpolige Darstellung als Zweitdarstellung:** Häkchen „Einpolige Darstellung“ im Dialog von Gerätemaske, Block, Klemme und Kabel. So markierte Symbole zählen in keiner Liste (Geräte-, Stück-, Klemmen-, Kabel-, SPS-Liste), nicht im Netz, nicht in Querverweisen, nicht in der Projektprüfung und nicht in der Auto-Nummerierung – dasselbe Gerät ein- und mehrpolig zu zeichnen wirft nichts doppelt aus
 - Neu: **Wände, Türen und Fenster für Gebäudegrundrisse** (Einfügen › Wand / Tür in Wand / Fenster in Wand): Wandstärke und Lage der Linie einstellbar, eigene Ebene „Wände“, Gehrungsecken, Objektfang auf allen Wandkanten; Türen und Fenster sind eigene, normale Objekte (per Klick in die Wand gesetzt, mit Griffen verschieb- und in der Breite änderbar, Doppelklick = nur deren Maße, Scharnierseite und Öffnungsrichtung), eine Tür schneidet die Lücke automatisch in die Wand
 - Neu: **Wände verbinden** (zwei Wände anklicken › Einfügen › Wände verbinden): beide werden zu einer Wand mit Gehrungsecke, Mittellinien bis zum Schnittpunkt verlängert oder gekürzt

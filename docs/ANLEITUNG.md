@@ -297,8 +297,8 @@ keiner Liste auf – zähle es mit einem mehrpoligen Symbol oder lass das Häkch
 Ändert sich die Kennzeichnung im mehrpoligen Symbol, ändere sie im einpoligen von Hand mit.
 
 **Polzahl:** Bei eigenen Geräten trägst du sie im selben Dialog im Feld **Polzahl** ein
-(z. B. `3` oder `3+N`; das Feld ist aktiv, sobald das Häkchen gesetzt ist). Sie steht als
-`/3` über der Kennzeichnung (IND) und lässt sich wie die anderen Maskentexte verschieben.
+(z. B. `3` oder `3+N`; das Feld ist aktiv, sobald das Häkchen gesetzt ist). Sie steht genau
+so, wie du sie tippst (`3`, `/3` …), über der Kennzeichnung (IND) und lässt sich wie die anderen Maskentexte verschieben.
 Symbole aus der Bibliothek „12 Single-pole“ haben stattdessen das Attribut **POLE**
 (Strich auf der Leitung mit Zahl); dann erscheint das Feld nicht doppelt.
 
