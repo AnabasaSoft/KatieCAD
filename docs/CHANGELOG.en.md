@@ -1,7 +1,7 @@
 # Changes
 
 ## 1.1.3
-- New: **Make 3D parts larger/smaller with "Stretch"** (same command as in 2D: Edit > Stretch / `ST`): select 3D objects, click the base point on the side to move (e.g. top edge of the cabinet), click the target point or type the distance (e.g. `-200`). Large parts (carcass, door, side panels) become longer/shorter, small parts on that side move along, the rest stays. Not stretchable: bodies on work planes, spheres, merged bodies, bodies with cut-outs.
+- New: **Make 3D parts larger/smaller with "Stretch"** (same command as in 2D: Edit > Stretch / `ST`): select 3D objects, click the base point on the side to move (e.g. top edge of the cabinet), click the target point or type the distance (e.g. `200` - towards the mouse, `-200` reverses). Large parts (carcass, door, side panels) become longer/shorter, small parts on that side move along, the rest stays. Not stretchable: bodies on work planes, spheres, merged bodies, bodies with cut-outs.
 - Fix: **Switching sheets with the 3D view open** failed with `TclError: window ".!canvas" isn't packed`; the 3D view is now closed cleanly / the display is anchored correctly.
 - New: **3D objects can be copied to another sheet with Ctrl+C / Ctrl+X / Ctrl+V:** in the 3D view the copy hangs on the mouse after Ctrl+V (with object snap) and is put down with a click. Fix: pasting in the 2D view placed a 3D body wrongly (the reference point was 0/0)
 - New: **3D - exact distance when moving:** while dragging an axis arrow just type the number (e.g. `300`, Backspace deletes, `-` = opposite direction) and confirm with Enter; also after clicking the arrow or via the input line

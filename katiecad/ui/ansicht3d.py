@@ -1862,7 +1862,12 @@ class Ansicht3D(tk.Frame):
             q = self._raum_punkt(self._maus) if self._maus else None
             i = max(range(3), key=lambda k: abs(G.v_sub(q, p0)[k])) if q else 2
             _i, seite, _d = self._strecken_parameter(p0, q) if q else (2, 1, 0.0)
-            self._strecken_fertig(i, seite, self._zahl_tippen(text) * self.app._einh_faktor())
+            wert = self._zahl_tippen(text) * self.app._einh_faktor()
+            if q and abs(_d) > 1e-9:
+                # like the direct distance entry in 2D: the value is the amount, the mouse
+                # direction gives the sign (a leading minus reverses the direction)
+                wert = abs(wert) * (1 if _d > 0 else -1) * (-1 if text.strip().startswith("-") else 1)
+            self._strecken_fertig(i, seite, wert)
             return True
         if m not in self.SKIZZEN:
             # a plain number moves the selection exactly along the chosen axis
