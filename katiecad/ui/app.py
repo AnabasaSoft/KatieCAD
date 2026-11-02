@@ -3475,7 +3475,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             return None
         tol = 12.0 / self._ctx_skala()
         liste = self._ctx_liste()
-        if self.aktuelle_polylinie and self.aktives_werkzeug.get() in ("polylinie", "spline", "wand"):
+        if self.aktuelle_polylinie and self.aktives_werkzeug.get() in ("polylinie", "spline", "wand", "raum"):
             liste = list(liste) + [Polylinie(list(self.aktuelle_polylinie))]
         res = self._finde_snap_in_liste(liste, x, y, tol, ref)
         if res is None and self._ctx()[0] == "layout":
@@ -4193,13 +4193,14 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self._wand_oeffnung_klick(pt, werkzeug)
         elif werkzeug == "wandverb":
             self._wand_verbinden_klick(pt)
-        elif werkzeug in ("polylinie", "spline", "wand"):
+        elif werkzeug in ("polylinie", "spline", "wand", "raum"):
             if lp is None or not self.aktuelle_polylinie:
                 self.aktuelle_polylinie = [pt]
             else:
                 p0 = self.aktuelle_polylinie[0]
+                schluss_tol = 12.0 / self.view["zoom"] if werkzeug == "raum" else 1e-9
                 if (len(self.aktuelle_polylinie) >= 3
-                        and math.hypot(pt[0] - p0[0], pt[1] - p0[1]) < 1e-9):
+                        and math.hypot(pt[0] - p0[0], pt[1] - p0[1]) < schluss_tol):
                     self._polylinie_abschliessen(geschlossen=True)
                     return
                 if math.hypot(pt[0] - lp[0], pt[1] - lp[1]) < 1e-9:
@@ -4224,11 +4225,6 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 self._ziel_liste().append(self._neues_rechteck(lp[0], lp[1], x_mm, y_mm))
                 self.letzter_punkt = None
                 self.redraw()
-        elif werkzeug == "raum":
-            if lp is None:
-                self.letzter_punkt = pt
-            elif abs(x_mm - lp[0]) > 1e-9 and abs(y_mm - lp[1]) > 1e-9:
-                self._raum_neu(lp[0], lp[1], x_mm, y_mm)
         elif werkzeug == "bogen":
             self._bogen_klick(pt)
         elif werkzeug == "bemassung":
@@ -4987,12 +4983,11 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         daten["linientyp"] = "Volllinie (schmal)"
         return daten
 
-    def _raum_neu(self, x1, y1, x2, y2):
-        """Room frame from two opposite corners, then ask number and name."""
+    def _raum_neu(self, punkte):
+        """Room frame from the clicked corners, then ask number and name."""
         self._snapshot()
-        r = Raum([(x1, y1), (x2, y1), (x2, y2), (x1, y2)], **self._raum_layer_daten())
+        r = Raum(punkte, **self._raum_layer_daten())
         self._ziel_liste().append(r)
-        self.letzter_punkt = None
         self.auswahl = [r]
         self.redraw()
         self._raum_bearbeiten(r, neu=True)
@@ -5179,6 +5174,16 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self.redraw()
 
     def _polylinie_abschliessen(self, geschlossen=False):
+        if self.aktives_werkzeug.get() == "raum":            # room: closed polygon of >= 3 corners
+            punkte = list(self.aktuelle_polylinie)
+            self.aktuelle_polylinie = []
+            self.letzter_punkt = None
+            if len(punkte) >= 3:
+                self._raum_neu(punkte)
+            else:
+                self.status.set(tr("msg.raum.zu_wenig"))
+                self.redraw()
+            return
         if len(self.aktuelle_polylinie) >= 2:
             self._snapshot()
             if self.aktives_werkzeug.get() == "wand":
@@ -6749,7 +6754,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         einh = self._einh_faktor()
         try:
             wort = text.upper()
-            if w in ("polylinie", "spline", "wand") and self.aktuelle_polylinie and wort in (
+            if w in ("polylinie", "spline", "wand", "raum") and self.aktuelle_polylinie and wort in (
                     "S", "SCHLIESSEN", "C", "CLOSE"):
                 self._polylinie_abschliessen(geschlossen=True)
                 self.letzter_punkt = None
@@ -6779,7 +6784,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 self._eingabe_kreis(text, einh)
             elif w == "rechteck":
                 self._eingabe_rechteck(text, einh)
-            elif w in ("polylinie", "spline", "wand"):
+            elif w in ("polylinie", "spline", "wand", "raum"):
                 self._eingabe_polylinie(text, einh)
             elif w in ("bogen", "bemassung", "ellipse"):
                 self._eingabe_punkt_werkzeug(text, einh)
@@ -7741,7 +7746,13 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 txt = (f"R {r / einh:.2f}" if self.kreis_modus.get() == "radius"
                        else f"D {2 * r / einh:.2f}")
                 label(lp[0] + r, lp[1], txt)
-        elif w in ("rechteck", "raum") and lp is not None:
+        elif w == "raum" and self.aktuelle_polylinie:
+            pts = list(self.aktuelle_polylinie) + [pt]
+            zeige(Polylinie(pts, geschlossen=len(pts) >= 3))
+            a = self.aktuelle_polylinie[-1]
+            label((a[0] + pt[0]) / 2, (a[1] + pt[1]) / 2,
+                  f"{math.hypot(pt[0] - a[0], pt[1] - a[1]) / einh:.2f} {unit}")
+        elif w == "rechteck" and lp is not None:
             zeige(Rechteck(lp[0], lp[1], pt[0], pt[1]))
             label((lp[0] + pt[0]) / 2, (lp[1] + pt[1]) / 2,
                   f"{abs(pt[0] - lp[0]) / einh:.1f} x {abs(pt[1] - lp[1]) / einh:.1f}", 0)
@@ -8648,7 +8659,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     def _eingabe_leer(self):
         if self._op is not None:
             self._op_rechtsklick()
-        elif (self.aktives_werkzeug.get() in ("polylinie", "spline", "wand")
+        elif (self.aktives_werkzeug.get() in ("polylinie", "spline", "wand", "raum")
               and self.aktuelle_polylinie):
             self._polylinie_abschliessen(geschlossen=False)
             self.letzter_punkt = None
