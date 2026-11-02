@@ -679,6 +679,8 @@ BEFEHLE = {
     "BOGEN": "tool:bogen", "ARC": "tool:bogen", "A": "tool:bogen",
     "ELLIPSE": "tool:ellipse", "EL": "tool:ellipse",
     "SPLINE": "tool:spline", "SPL": "tool:spline",
+    "WAND": "tool:wand", "WALL": "tool:wand", "TUER": "tool:tuer", "TÜR": "tool:tuer",
+    "DOOR": "tool:tuer", "FENSTER": "tool:fenster", "WINDOW": "tool:fenster",
     "RECHTECK": "tool:rechteck", "REC": "tool:rechteck", "RECTANG": "tool:rechteck",
     "TEXT": "tool:text", "T": "tool:text",
     "BEMASSUNG": "tool:bemassung", "BEM": "tool:bemassung", "DIM": "tool:bemassung",
@@ -1352,6 +1354,245 @@ class Spline(Polylinie):
         self.stuetz = [punkte_drehen(x, y, cx, cy, winkel_deg)
                        for (x, y) in self.stuetz]
         self.neu_berechnen()
+
+
+WAND_LAYER = "Wände"
+WAND_LAYER_FARBE = ("#ffb86b", 0.5)          # colour, line weight of the automatic wall layer
+WAND_AUSRICHTUNGEN = ("mitte", "links", "rechts")
+OEFFNUNG_VORGABE = {                          # plan symbols: door / window
+    "tuer": {"breite": 1010.0, "hoehe": 2010.0, "bruestung": 0.0},
+    "fenster": {"breite": 1250.0, "hoehe": 1250.0, "bruestung": 900.0},
+}
+
+
+class Wand(Polylinie):
+    """Building wall: centre line `punkte` (like a polyline), thickness `dicke` and
+    `ausrichtung` of the line to the wall body ("mitte" = centred, "links"/"rechts" = the line is
+    the left / right face). `oeffnungen`: doors and windows of this wall, each
+    {"art": "tuer"|"fenster", "abstand": mm from the wall start along the line to the start of the
+     opening, "breite", "hoehe", "bruestung" (sill height), "anschlag": "anfang"|"ende" (hinge,
+     doors), "aufschlag": "links"|"rechts" (swing side seen in drawing direction)}.
+    An opening lies in the segment where it starts. The wall is drawn as outline (both faces,
+    end caps, door leaf with swing arc, window glazing lines)."""
+
+    def __init__(self, punkte, geschlossen=False, dicke=240.0, ausrichtung="mitte",
+                 oeffnungen=None, **kw):
+        super().__init__(punkte, geschlossen, **kw)
+        self.typ = "wand"
+        self.dicke = max(1.0, float(dicke))
+        self.ausrichtung = ausrichtung if ausrichtung in WAND_AUSRICHTUNGEN else "mitte"
+        self.oeffnungen = [self.oeffnung_normieren(o) for o in (oeffnungen or [])]
+
+    @staticmethod
+    def oeffnung_normieren(o):
+        art = "fenster" if o.get("art") == "fenster" else "tuer"
+        v = OEFFNUNG_VORGABE[art]
+        return {"art": art,
+                "abstand": max(0.0, float(o.get("abstand", 0.0))),
+                "breite": max(1.0, float(o.get("breite", v["breite"]))),
+                "hoehe": max(1.0, float(o.get("hoehe", v["hoehe"]))),
+                "bruestung": max(0.0, float(o.get("bruestung", v["bruestung"]))),
+                "anschlag": "ende" if o.get("anschlag") == "ende" else "anfang",
+                "aufschlag": "rechts" if o.get("aufschlag") == "rechts" else "links"}
+
+    # ---- geometry -------------------------------------------------------
+    def _segmente(self):
+        """Centre line segments [(i, j)] (vertex indices)."""
+        n = len(self.punkte)
+        if n < 2:
+            return []
+        m = n if (self.geschlossen and n >= 3) else n - 1
+        return [(k, (k + 1) % n) for k in range(m)]
+
+    def laenge(self):
+        return sum(math.hypot(self.punkte[j][0] - self.punkte[i][0],
+                              self.punkte[j][1] - self.punkte[i][1])
+                   for i, j in self._segmente())
+
+    def _versatz_ecken(self):
+        """Left and right offset point of every vertex (mitre joins)."""
+        pts = self.punkte
+        n = len(pts)
+        ol, orr = {"mitte": (self.dicke / 2, self.dicke / 2),
+                   "links": (0.0, self.dicke), "rechts": (self.dicke, 0.0)}[self.ausrichtung]
+        segs = self._segmente()
+        normalen = []
+        for i, j in segs:
+            dx, dy = pts[j][0] - pts[i][0], pts[j][1] - pts[i][1]
+            d = math.hypot(dx, dy) or 1.0
+            normalen.append((-dy / d, dx / d))
+        geschl = self.geschlossen and n >= 3
+        L, R = [], []
+        for v in range(n):
+            if geschl:
+                n1, n2 = normalen[(v - 1) % len(segs)], normalen[v % len(segs)]
+            elif v == 0:
+                n1 = n2 = normalen[0]
+            elif v == n - 1:
+                n1 = n2 = normalen[-1]
+            else:
+                n1, n2 = normalen[v - 1], normalen[v]
+            dot = n1[0] * n2[0] + n1[1] * n2[1]
+            if 1.0 + dot < 0.15:                 # (almost) reversing: no mitre
+                mx, my = n1
+            else:
+                mx, my = (n1[0] + n2[0]) / (1.0 + dot), (n1[1] + n2[1]) / (1.0 + dot)
+            L.append((pts[v][0] + ol * mx, pts[v][1] + ol * my))
+            R.append((pts[v][0] - orr * mx, pts[v][1] - orr * my))
+        return L, R
+
+    def prims(self):
+        """Outline as polylines [(points, closed)]."""
+        segs = self._segmente()
+        if not segs:
+            return []
+        L, R = self._versatz_ecken()
+        pts = self.punkte
+        laengen, start = [], []
+        acc = 0.0
+        for i, j in segs:
+            start.append(acc)
+            ln = math.hypot(pts[j][0] - pts[i][0], pts[j][1] - pts[i][1])
+            laengen.append(ln)
+            acc += ln
+        # openings per segment: (t0, t1, opening)
+        je_seg = [[] for _ in segs]
+        for o in self.oeffnungen:
+            k = None
+            for q in range(len(segs)):
+                if start[q] <= o["abstand"] < start[q] + laengen[q] - 1e-9:
+                    k = q
+                    break
+            if k is None or laengen[k] < 1e-9:
+                continue
+            t0 = (o["abstand"] - start[k]) / laengen[k]
+            t1 = min(1.0, t0 + o["breite"] / laengen[k])
+            je_seg[k].append((t0, t1, o))
+        for lst in je_seg:
+            lst.sort(key=lambda a: a[0])
+
+        def lerp(a, b, t):
+            return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
+
+        ol, orr = {"mitte": (self.dicke / 2, self.dicke / 2),
+                   "links": (0.0, self.dicke), "rechts": (self.dicke, 0.0)}[self.ausrichtung]
+
+        def seite_pkt(k, t, links):
+            """Point of the left / right face at the fraction t of segment k (perpendicular)."""
+            i, j = segs[k]
+            ax, ay = pts[i]
+            bx, by = pts[j]
+            d = laengen[k] or 1.0
+            nx, ny = -(by - ay) / d, (bx - ax) / d
+            cx, cy = ax + (bx - ax) * t, ay + (by - ay) * t
+            o = ol if links else -orr
+            return (cx + nx * o, cy + ny * o)
+
+        out = []
+        for seite in (L, R):
+            if not any(je_seg[k] and any(o["art"] == "tuer" for _a, _b, o in je_seg[k])
+                       for k in range(len(segs))):
+                ring = [seite[i] for i, _j in segs]
+                if self.geschlossen and len(self.punkte) >= 3:
+                    out.append((ring, True))
+                else:
+                    out.append((ring + [seite[segs[-1][1]]], False))
+                continue
+            cur = [seite[segs[0][0]]]
+            for k, (i, j) in enumerate(segs):
+                A, B = seite[i], seite[j]
+                for t0, t1, o in je_seg[k]:
+                    if o["art"] != "tuer":
+                        continue
+                    cur.append(seite_pkt(k, t0, seite is L))
+                    out.append((cur, False))
+                    cur = [seite_pkt(k, t1, seite is L)]
+                cur.append(B)
+            out.append((cur, False))
+        if not (self.geschlossen and len(self.punkte) >= 3):
+            out.append(([L[0], R[0]], False))                    # end caps
+            out.append(([L[-1], R[-1]], False))
+        for k, (i, j) in enumerate(segs):
+            for t0, t1, o in je_seg[k]:
+                a0, b0 = seite_pkt(k, t0, True), seite_pkt(k, t0, False)
+                a1, b1 = seite_pkt(k, t1, True), seite_pkt(k, t1, False)
+                out.append(([a0, b0], False))
+                out.append(([a1, b1], False))
+                if o["art"] == "fenster":                        # glazing: two thin lines
+                    for f in (0.35, 0.65):
+                        out.append(([lerp(a0, b0, f), lerp(a1, b1, f)], False))
+                    continue
+                links = o["aufschlag"] == "links"
+                kante0, kante1 = (a0, a1) if links else (b0, b1)
+                h, g = (kante0, kante1) if o["anschlag"] == "anfang" else (kante1, kante0)
+                ux, uy = (g[0] - h[0]), (g[1] - h[1])
+                bl = math.hypot(ux, uy)
+                if bl < 1e-9:
+                    continue
+                ux, uy = ux / bl, uy / bl
+                nx, ny = ((-uy, ux) if links else (uy, -ux))
+                # the leaf stands perpendicular on the swing-side face
+                spitze = (h[0] + nx * bl, h[1] + ny * bl)
+                out.append(([h, spitze], False))
+                a_s = math.atan2(ny, nx)
+                a_e = math.atan2(uy, ux)
+                da = (a_e - a_s + math.pi) % (2 * math.pi) - math.pi
+                bogen = [(h[0] + bl * math.cos(a_s + da * q / 16.0),
+                          h[1] + bl * math.sin(a_s + da * q / 16.0)) for q in range(17)]
+                out.append((bogen, False))
+        return [(p, c) for (p, c) in out if len(p) >= 2]
+
+    def punkt_im_koerper(self, x, y, tol=0.0):
+        """True if the point lies on the wall body (between both faces) or within tol of it."""
+        ol, orr = {"mitte": (self.dicke / 2, self.dicke / 2),
+                   "links": (0.0, self.dicke), "rechts": (self.dicke, 0.0)}[self.ausrichtung]
+        for i, j in self._segmente():
+            ax, ay = self.punkte[i]
+            bx, by = self.punkte[j]
+            ln = math.hypot(bx - ax, by - ay)
+            if ln < 1e-9:
+                continue
+            ux, uy = (bx - ax) / ln, (by - ay) / ln
+            t = (x - ax) * ux + (y - ay) * uy                    # along the segment
+            q = -(x - ax) * uy + (y - ay) * ux                   # across (left positive)
+            if -tol - orr <= -q <= ol + tol and -tol <= t <= ln + tol:
+                if -orr - tol <= q <= ol + tol:
+                    return True
+        return False
+
+    def bbox(self):
+        xs, ys = [], []
+        for pl, _c in self.prims():
+            xs += [p[0] for p in pl]
+            ys += [p[1] for p in pl]
+        if not xs:
+            return super().bbox()
+        return (min(xs), min(ys), max(xs), max(ys))
+
+    def oeffnung_hinzufuegen(self, art, x, y, **kw):
+        """Puts a door / window centred at the point (x, y) onto the nearest segment."""
+        best = None
+        acc = 0.0
+        for i, j in self._segmente():
+            ax, ay = self.punkte[i]
+            bx, by = self.punkte[j]
+            ln = math.hypot(bx - ax, by - ay)
+            if ln < 1e-9:
+                continue
+            t = max(0.0, min(1.0, ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / (ln * ln)))
+            d = math.hypot(ax + (bx - ax) * t - x, ay + (by - ay) * t - y)
+            if best is None or d < best[0]:
+                best = (d, acc, ln, t)
+            acc += ln
+        if best is None:
+            return None
+        _d, s0, ln, t = best
+        o = self.oeffnung_normieren({"art": art, **kw})
+        o["breite"] = min(o["breite"], ln)
+        pos = t * ln - o["breite"] / 2.0
+        o["abstand"] = s0 + max(0.0, min(pos, ln - o["breite"]))
+        self.oeffnungen.append(o)
+        return o
 
 
 class Text(Element):
@@ -2097,6 +2338,11 @@ class BlockReferenz(Element):
             el.__dict__.update(neu.__dict__)
         elif isinstance(el, Polylinie):
             el.punkte = [self._welt_pts(x, y) for (x, y) in el.punkte]
+            if isinstance(el, Wand):
+                el.dicke *= self.skalierung
+                for _o in el.oeffnungen:
+                    for _k in ("abstand", "breite", "hoehe", "bruestung"):
+                        _o[_k] *= self.skalierung
             if isinstance(el, (Ellipse, Spline)):
                 # parameters would be stale after the transformation
                 for _k in ("cx", "cy", "a", "b", "rot", "stuetz"):
@@ -4825,6 +5071,23 @@ _inst(Kreis, skalieren=_sk_kreis, spiegeln=_sp_kreis)
 _inst(Bogen, skalieren=_sk_kreis, spiegeln=_sp_bogen)
 _inst(Rechteck, skalieren=_sk_rechteck, spiegeln=_sp_rechteck)
 _inst(Polylinie, skalieren=_sk_poly, spiegeln=_sp_poly)
+
+
+def _sk_wand(e, cx, cy, f):
+    _sk_poly(e, cx, cy, f)
+    e.dicke *= f
+    for o in e.oeffnungen:
+        for k in ("abstand", "breite", "hoehe", "bruestung"):
+            o[k] *= f
+
+
+def _sp_wand(e, ax, ay, bx, by):
+    _sp_poly(e, ax, ay, bx, by)
+    for o in e.oeffnungen:                 # mirroring swaps left and right
+        o["aufschlag"] = "rechts" if o["aufschlag"] == "links" else "links"
+
+
+_inst(Wand, skalieren=_sk_wand, spiegeln=_sp_wand)
 
 
 def _sk_ellipse(e, cx, cy, f):

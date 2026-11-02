@@ -71,7 +71,7 @@ from katiecad.model.core import (
     BEFEHLE, PdfSeite, ist_dunkel,
     E_DEVICES, E_LINES, E_CABLE, E_CLAMPS, E_PIN, ELEKTRO_LAYER, FTEXT_LAYER,
     Layer, Layout, Element, Linie, Kreis, Bogen, Rechteck, Polylinie, Text,
-    Ellipse, Spline,
+    Ellipse, Spline, Wand, WAND_LAYER, WAND_LAYER_FARBE,
     Bemassung, Viewport, Schraffur, Bild, konturen_aus_elementen, bereich_an_punkt,
     AttributDefinition, Leitung, Verbindungspunkt, Querverweis,
     Verbindung, ElektroMaske, Klemme, Kabel, Koordinatenfeld, ZUSAMMENGESETZT,
@@ -95,7 +95,7 @@ from katiecad.ui.dialogs import (
     _BlockNameDialog, _BlockAuswahlDialog, BlockBrowserDialog,
     BlockSpeichernDialog,
     ProjektNeuDialog, AttributDefinitionDialog, BlockAttributeDialog,
-    MasstextDialog, BauteilkatalogDialog, SchnellauswahlDialog, SuchenErsetzenDialog, QuerverweisDialog, PruefungDialog, EigenschaftenPalette, VerbindungspunkteDialog, ProjektDruckDialog,
+    MasstextDialog, WandDialog, BauteilkatalogDialog, SchnellauswahlDialog, SuchenErsetzenDialog, QuerverweisDialog, PruefungDialog, EigenschaftenPalette, VerbindungspunkteDialog, ProjektDruckDialog,
     VerbindungspunktDialog, VerbindungDialog, FestMaskeDialog,
     KoordinatenfeldDialog,
     TitleBlockDialog, DokumentationDialog, ListenAuswahlDialog, SchriftenDialog, ProjektEigenschaftenDialog,
@@ -1285,6 +1285,13 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         m_einf.add_command(label=tr("menu.einfuegen.rechteck"),
                            command=lambda: self._werkzeug_aus_menue("rechteck"))
         m_einf.add_separator()
+        m_einf.add_command(label=tr("menu.einfuegen.wand"),
+                           command=lambda: self._werkzeug_aus_menue("wand"))
+        m_einf.add_command(label=tr("menu.einfuegen.tuer"),
+                           command=lambda: self._werkzeug_aus_menue("tuer"))
+        m_einf.add_command(label=tr("menu.einfuegen.fenster"),
+                           command=lambda: self._werkzeug_aus_menue("fenster"))
+        m_einf.add_separator()
         m_einf.add_command(label=tr("menu.einfuegen.text"),
                            command=lambda: self._werkzeug_aus_menue("text"))
         m_einf.add_command(label=tr("menu.einfuegen.bemassung"),
@@ -1549,7 +1556,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         ttk.Label(tb, text=tr("tb.werkzeug"), style="Title.TLabel").pack(side=tk.LEFT, padx=(0, 4))
         for key in ("auswahl", "linie", "polylinie", "kreis", "bogen",
                     "ellipse", "spline", "rechteck", "text", "bemassung",
-                    "stutzen", "brechen"):
+                    "stutzen", "brechen", "wand", "tuer", "fenster"):
             self._werkzeug_knopf(tb, key, FARBEN["cyan"])
         self._befehl_knopf(tb, "laenge", FARBEN["cyan"], self.laenge_start)
         self._befehl_knopf(tb, "suchen", FARBEN["cyan"], self.suchen_ersetzen)
@@ -2054,6 +2061,12 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if self.aktives_werkzeug.get() == "auswahl":
             self.auswahl = []
         self._werkzeug_gewechselt()
+        wz = self.aktives_werkzeug.get()
+        if wz == "wand":
+            self._wand_werkzeug_start()
+        elif wz in ("tuer", "fenster"):
+            self._wand_layer_sicherstellen()
+            self.status.set(tr("msg.wand." + wz))
 
     def _bem_art_starten(self, art):
         """Activates the dimension tool with radius/diameter preselected."""
@@ -3352,6 +3365,13 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                         ecken[(i + 1) % 4][0], ecken[(i + 1) % 4][1])
                 if isinstance(el, Viewport):
                     zentrum((x1 + x2) / 2, (y1 + y2) / 2)
+            elif isinstance(el, Wand):
+                for pl, c in el.prims():
+                    for (x, y) in pl:
+                        ende(x, y)
+                    pts = list(pl) + ([pl[0]] if c and len(pl) > 2 else [])
+                    for i in range(len(pts) - 1):
+                        seg(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1])
             elif isinstance(el, Polylinie):
                 for (x, y) in el.punkte:
                     ende(x, y)
@@ -3444,7 +3464,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             return None
         tol = 12.0 / self._ctx_skala()
         liste = self._ctx_liste()
-        if self.aktuelle_polylinie and self.aktives_werkzeug.get() in ("polylinie", "spline"):
+        if self.aktuelle_polylinie and self.aktives_werkzeug.get() in ("polylinie", "spline", "wand"):
             liste = list(liste) + [Polylinie(list(self.aktuelle_polylinie))]
         res = self._finde_snap_in_liste(liste, x, y, tol, ref)
         if res is None and self._ctx()[0] == "layout":
@@ -3833,6 +3853,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             return punkt_in_gedrehtem_rechteck(x_mm, y_mm, (el.bbox()[0]+el.bbox()[2])/2, (el.bbox()[1]+el.bbox()[3])/2, el.bbox()[2]-el.bbox()[0], el.bbox()[3]-el.bbox()[1], 0.0)
         if isinstance(el, Verbindungspunkt):
             return el.trifft(x_mm, y_mm, tol)
+        if isinstance(el, Wand) and el.punkt_im_koerper(x_mm, y_mm, tol):
+            return True                          # the whole wall body counts, not only the faces
         if isinstance(el, Text):
             return el.punkt_im_rahmen(x_mm, y_mm, tol)
         if isinstance(el, Kreis):
@@ -4152,7 +4174,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 self.redraw()
         elif werkzeug == "ellipse":
             self._ellipse_klick(pt)
-        elif werkzeug in ("polylinie", "spline"):
+        elif werkzeug in ("tuer", "fenster"):
+            self._wand_oeffnung_klick(pt, werkzeug)
+        elif werkzeug in ("polylinie", "spline", "wand"):
             if lp is None or not self.aktuelle_polylinie:
                 self.aktuelle_polylinie = [pt]
             else:
@@ -4293,6 +4317,11 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                    (el.x2, el.y2), (el.x1, el.y2)]
             for i in range(4):
                 segs.append((pts[i], pts[(i + 1) % 4]))
+        elif isinstance(el, Wand):
+            for pl, c in el.prims():
+                pts = list(pl) + ([pl[0]] if c and len(pl) > 2 else [])
+                for i in range(len(pts) - 1):
+                    segs.append((pts[i], pts[i + 1]))
         elif isinstance(el, Polylinie):
             pts = list(el.punkte)
             if el.geschlossen and len(pts) >= 3:
@@ -4705,6 +4734,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if isinstance(el, Bemassung):
             self.masstext_aendern(el)             # double click on a dimension: dimension text
             return
+        if isinstance(el, Wand):
+            self._wand_bearbeiten(el)
+            return
         vorher = self._zustand()
         dlg = PropertiesDialog(self.root, self, el)
         if dlg.result:
@@ -4880,10 +4912,83 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self.canvas.delete("auswahlvorschau")
         self.redraw()
 
+    # ---- building walls -------------------------------------------------
+    _wand_dicke = 240.0
+    _wand_ausrichtung = "mitte"
+
+    def _wand_layer_sicherstellen(self):
+        """Own layer for walls (created on first use)."""
+        if WAND_LAYER not in self.layers:
+            self.layers[WAND_LAYER] = Layer(WAND_LAYER, WAND_LAYER_FARBE[0], WAND_LAYER_FARBE[1])
+            try:
+                self.layer_cb.config(values=list(self.layers.keys()))
+            except Exception:
+                pass
+        return WAND_LAYER
+
+    def _wand_layer_daten(self):
+        daten = self._layer_daten()
+        self._wand_layer_sicherstellen()
+        daten["layer"] = WAND_LAYER
+        daten["eig_farbe"] = False
+        daten["farbe"] = self.layers[WAND_LAYER].farbe
+        daten["staerke"] = None
+        daten["linientyp"] = "Volllinie (schmal)"
+        return daten
+
+    def _wand_werkzeug_start(self):
+        """Wall tool selected: ask thickness and alignment, create the layer."""
+        self._wand_layer_sicherstellen()
+        dlg = WandDialog(self.root, self._wand_dicke, self._wand_ausrichtung, vorgabe=True)
+        if dlg.result is None:
+            self.aktives_werkzeug.set("auswahl")
+            self._werkzeug_toolbar()
+            return
+        self._wand_dicke = dlg.result["dicke"]
+        self._wand_ausrichtung = dlg.result["ausrichtung"]
+        self.status.set(tr("msg.wand.klick"))
+
+    def _wand_unter_punkt(self, pt):
+        tol = 8 / self.view["zoom"]
+        for el in reversed(self._ctx_liste()):
+            if isinstance(el, Wand):
+                l = self.layers.get(el.layer)
+                if l and not l.sichtbar:
+                    continue
+                if self._punkt_auf_element(el, pt[0], pt[1], tol):
+                    return el
+        return None
+
+    def _wand_oeffnung_klick(self, pt, art):
+        wand = self._wand_unter_punkt(pt)
+        if wand is None:
+            self.status.set(tr("msg.wand.keine"))
+            return
+        self._snapshot()
+        wand.oeffnung_hinzufuegen(art, pt[0], pt[1])
+        self.redraw()
+        self.status.set(tr("msg.wand.eingesetzt", art=tr("dlg.wand.art." + art)))
+
+    def _wand_bearbeiten(self, el, nr=None):
+        dlg = WandDialog(self.root, el.dicke, el.ausrichtung, el.oeffnungen,
+                         laenge=el.laenge(), auswahl=nr)
+        if dlg.result is None:
+            return
+        self._snapshot()
+        el.dicke = dlg.result["dicke"]
+        el.ausrichtung = dlg.result["ausrichtung"]
+        el.oeffnungen = [Wand.oeffnung_normieren(o) for o in dlg.result["oeffnungen"]]
+        self.redraw()
+
     def _polylinie_abschliessen(self, geschlossen=False):
         if len(self.aktuelle_polylinie) >= 2:
             self._snapshot()
-            if self.aktives_werkzeug.get() == "spline":
+            if self.aktives_werkzeug.get() == "wand":
+                self._ziel_liste().append(Wand(
+                    self.aktuelle_polylinie, geschlossen=geschlossen,
+                    dicke=self._wand_dicke, ausrichtung=self._wand_ausrichtung,
+                    **self._wand_layer_daten()))
+            elif self.aktives_werkzeug.get() == "spline":
                 self._ziel_liste().append(Spline(self.aktuelle_polylinie,
                                                  geschlossen=geschlossen,
                                                  **self._layer_daten()))
@@ -5947,6 +6052,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             if typ == "polylinie":  return Polylinie(**d)
             if typ == "ellipse":    return Ellipse(**d)
             if typ == "spline":     return Spline(**d)
+            if typ == "wand":       return Wand(**d)
             if typ == "text":       return Text(**d)
             if typ == "bemassung":  return Bemassung(**d)
             if typ == "viewport":   return Viewport(**d)
@@ -6046,6 +6152,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             elif isinstance(el, Rechteck):
                 pts = [(el.x1, el.y1), (el.x2, el.y1), (el.x2, el.y2), (el.x1, el.y2)]
                 msp.add_lwpolyline(pts, close=True, dxfattribs=attribs)
+            elif isinstance(el, Wand):
+                for pl, c in el.prims():
+                    msp.add_lwpolyline(pl, close=c, dxfattribs=attribs)
             elif isinstance(el, Polylinie):
                 msp.add_lwpolyline(el.punkte, close=el.geschlossen, dxfattribs=attribs)
             elif isinstance(el, Text):
@@ -6420,7 +6529,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         einh = self._einh_faktor()
         try:
             wort = text.upper()
-            if w in ("polylinie", "spline") and self.aktuelle_polylinie and wort in (
+            if w in ("polylinie", "spline", "wand") and self.aktuelle_polylinie and wort in (
                     "S", "SCHLIESSEN", "C", "CLOSE"):
                 self._polylinie_abschliessen(geschlossen=True)
                 self.letzter_punkt = None
@@ -6450,7 +6559,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 self._eingabe_kreis(text, einh)
             elif w == "rechteck":
                 self._eingabe_rechteck(text, einh)
-            elif w in ("polylinie", "spline"):
+            elif w in ("polylinie", "spline", "wand"):
                 self._eingabe_polylinie(text, einh)
             elif w in ("bogen", "bemassung", "ellipse"):
                 self._eingabe_punkt_werkzeug(text, einh)
@@ -6828,6 +6937,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if isinstance(el, Rechteck):
             return [("l", [(el.x1, el.y1), (el.x2, el.y1),
                            (el.x2, el.y2), (el.x1, el.y2)], True)]
+        if isinstance(el, Wand):
+            return [("l", pl, c) for pl, c in el.prims()]
         if isinstance(el, Polylinie):
             return [("l", list(el.punkte), el.geschlossen)] if len(el.punkte) >= 2 else []
         if isinstance(el, Kreis):
@@ -7422,6 +7533,13 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             a = self.aktuelle_polylinie[-1]
             label((a[0] + pt[0]) / 2, (a[1] + pt[1]) / 2,
                   f"{math.hypot(pt[0] - a[0], pt[1] - a[1]) / einh:.2f} {unit}")
+        elif w == "wand" and self.aktuelle_polylinie:
+            pts = list(self.aktuelle_polylinie) + [pt]
+            if len(pts) >= 2:
+                zeige(Wand(pts, dicke=self._wand_dicke, ausrichtung=self._wand_ausrichtung))
+                a = self.aktuelle_polylinie[-1]
+                label((a[0] + pt[0]) / 2, (a[1] + pt[1]) / 2,
+                      f"{math.hypot(pt[0] - a[0], pt[1] - a[1]) / einh:.2f} {unit}")
         elif w == "polylinie" and self.aktuelle_polylinie:
             pts = list(self.aktuelle_polylinie) + [pt]
             if len(pts) >= 2:
@@ -8291,7 +8409,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     def _eingabe_leer(self):
         if self._op is not None:
             self._op_rechtsklick()
-        elif (self.aktives_werkzeug.get() in ("polylinie", "spline")
+        elif (self.aktives_werkzeug.get() in ("polylinie", "spline", "wand")
               and self.aktuelle_polylinie):
             self._polylinie_abschliessen(geschlossen=False)
             self.letzter_punkt = None
@@ -8404,7 +8522,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self._bem_art_starten(cmd[4:])
         elif cmd.startswith("tool:"):
             self.aktives_werkzeug.set(cmd[5:])
-            self._werkzeug_gewechselt()
+            self._werkzeug_toolbar()
         elif cmd.startswith("tool:"):
             self.aktives_werkzeug.set(cmd[5:])
             self._werkzeug_gewechselt()

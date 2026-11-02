@@ -1,6 +1,8 @@
 # Changes
 
 ## 1.1.3
+- New: **walls, doors and windows for building floor plans** (Insert > Wall / Door in wall / Window in wall): adjustable wall thickness and position of the line, own layer "Wände", mitred corners, object snap on all wall edges; doors (with leaf and swing arc) and windows (with glazing lines) are placed into the wall by click and changed in the wall dialog (double click): distance, width, height, sill, hinge side and swing
+- Change: program version 1.1.3 (About window, installer)
 - New: **Hide cabinet doors per viewport** (right-click the viewport > 3D view in this viewport > Hide cabinet doors): door, handle and lock disappear in this viewport only; the same cabinet thus appears in one layout with and without door, without drawing it twice. Saved with the project, applies to object snap and PDF
 
 ## 1.1.2

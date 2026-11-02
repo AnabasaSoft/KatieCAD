@@ -15,7 +15,7 @@ import os
 
 from katiecad.model.core import (
     BlockDefinition, BlockReferenz, ZUSAMMENGESETZT, Linie, Kreis, Bogen,
-    Rechteck, Polylinie, Text, Schraffur, Verbindungspunkt, bogen_punkte,
+    Rechteck, Polylinie, Wand, Text, Schraffur, Verbindungspunkt, bogen_punkte,
     _FestMaske)
 from katiecad.model.project import _UNGUELTIG, BLOCK_ENDUNG
 
@@ -161,6 +161,9 @@ def vorschau_geometrie(definition):
         elif isinstance(el, Rechteck):
             pts = [(el.x1, el.y1), (el.x2, el.y1), (el.x2, el.y2), (el.x1, el.y2)]
             linien.append((pts, True, f)); punkte(pts)
+        elif isinstance(el, Wand):
+            for pts, geschl in el.prims():
+                linien.append((list(pts), bool(geschl), f)); punkte(pts)
         elif isinstance(el, Polylinie):
             pts = list(el.punkte)
             linien.append((pts, bool(el.geschlossen), f)); punkte(pts)

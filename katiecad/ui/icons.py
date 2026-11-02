@@ -74,6 +74,21 @@ def _zeichne(name, d, c, f):
         L([(10, 50), (54, 50)])
         for x in (72, 82, 92):                         # removed rest, dashed
             L([(x, 50), (x + 3, 50)], 5)
+    elif name == "wand":
+        L([(14, 34), (66, 34), (66, 84)], 5); L([(14, 56), (44, 56), (44, 84)], 5)
+        L([(14, 34), (14, 56)], 5); L([(66, 84), (44, 84)], 5)
+    elif name == "tuer":
+        L([(10, 30), (30, 30)], 5); L([(10, 46), (30, 46)], 5)
+        L([(76, 30), (90, 30)], 5); L([(76, 46), (90, 46)], 5)
+        L([(30, 46), (30, 86)], 5)
+        L([(30 + 46 * math.sin(math.radians(a)), 86 - 46 * math.cos(math.radians(a)))
+           for a in range(0, 91, 10)], 4)
+    elif name == "fenster":
+        L([(10, 30), (28, 30)], 5); L([(10, 54), (28, 54)], 5)
+        L([(72, 30), (90, 30)], 5); L([(72, 54), (90, 54)], 5)
+        L([(28, 30), (72, 30)], 5); L([(28, 54), (72, 54)], 5)
+        L([(28, 38), (72, 38)], 3); L([(28, 46), (72, 46)], 3)
+        L([(28, 30), (28, 54)], 5); L([(72, 30), (72, 54)], 5)
     elif name == "brechen":
         L([(8, 50), (36, 50)]); L([(64, 50), (92, 50)])
         L([(30, 36), (42, 64)], 5); L([(58, 36), (70, 64)], 5)
@@ -271,7 +286,7 @@ def _zeichne(name, d, c, f):
 
 
 NAMEN = ("auswahl", "linie", "polylinie", "kreis", "bogen", "ellipse", "spline",
-         "rechteck", "text", "bemassung", "stutzen", "brechen",
+         "rechteck", "text", "bemassung", "stutzen", "brechen", "wand", "tuer", "fenster",
          "vpunkt", "verbindung", "querverweis", "maske", "klemme", "kabel",
          "koordinatenfeld", "suchen", "zoom_plus", "zoom_minus",
          "zoom_grenzen", "reset", "ftext", "laenge", "manip",
