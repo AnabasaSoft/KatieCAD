@@ -10,7 +10,7 @@ FETT_ANZEIGE = " fett"      # palette: "Arial fett"
 VERSCHIEDEN = "*"          # marker for "values differ"
 ALLGEMEIN = ("layer", "farbe", "linientyp", "staerke")
 TEXTFELDER = ("hoehe", "schriftart", "winkel", "einfuegepunkt")
-BEMFELDER = ("dez", "pfeil", "endstueck")          # dimensions: number of decimal places (0 ... 6)
+BEMFELDER = ("dez", "pfeil", "endstueck", "text_override")          # dimensions: number of decimal places (0 ... 6)
 DEZ_MAX = 6
 
 
@@ -54,6 +54,7 @@ def gemeinsame(auswahl):
         sammeln("dez", bem)
         sammeln("pfeil", bem)
         sammeln("endstueck", bem)
+        sammeln("text_override", bem)
     return out
 
 
@@ -71,6 +72,8 @@ def anwenden(auswahl, feld, wert):
                 e.pfeil = max(0.05, float(wert))
             elif feld == "endstueck":
                 e.endstueck = "strich" if wert == "strich" else "pfeil"
+            elif feld == "text_override":
+                e.text_override = str(wert)
         elif feld in TEXTFELDER:
             if not isinstance(e, Text) and not (isinstance(e, Bemassung) and feld in ("hoehe", "schriftart")):
                 continue

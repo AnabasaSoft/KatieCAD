@@ -7,6 +7,7 @@
 - New: **"Join walls" button** in the toolbar: click the first and second wall, they are merged at once into one wall with a mitred corner
 - New: wall hatch also as **solid fill**; default line spacing 180 mm
 - Fix: hatch ran through doors and windows; doors and windows on the wall line (position "left/right") were sometimes not recognised in the wall and cut no gap
+- Change: **the separate "Change dimension text" window is gone:** double click on a dimension opens its properties again (with the field "Displayed text", the measured value and "Restore measured value", arrow size, end piece ...); the text is also in the properties window (Ctrl+1)
 - Fix: **properties window for dimensions:** text height, font and arrow size can be set again (the fields were locked for dimensions)
 - New: **end piece of dimensions selectable:** arrow or **diagonal tick** (properties window, properties dialog and toolbar); font of the dimension text adjustable
 - New: **decimal places of dimensions** adjustable (0 to 6): in the properties window (Ctrl+1, also for several dimensions at once) and via right click on the dimension > Decimal places

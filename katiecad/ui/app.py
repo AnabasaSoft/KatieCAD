@@ -4755,9 +4755,6 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if isinstance(el, AttributDefinition):
             self._attdef_bearbeiten(el)
             return
-        if isinstance(el, Bemassung):
-            self.masstext_aendern(el)             # double click on a dimension: dimension text
-            return
         if isinstance(el, Wand):
             self._wand_bearbeiten(el)
             return
@@ -4774,26 +4771,18 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self.redraw()
 
     def masstext_aendern(self, el=None):
-        """Own text for a dimension (e.g. exactly 150 although the measure differs);
-        <> stands for the measured value. Empty = measured value again."""
+        """Dimension text: part of the properties dialog of the dimension (text field)."""
         if el is None:
             ziele = [e for e in self.auswahl if isinstance(e, Bemassung)]
             if not ziele:
                 self.status.set(tr("msg.masstext.keine"))
                 return
             el = ziele[0]
-        faktor, komma = self._einh_faktor(), self.dezimalkomma.get()
-        alt = el.text_override
-        el.text_override = ""
-        gemessen = el.text(faktor, komma)
-        el.text_override = alt
-        dlg = MasstextDialog(self.root, alt, gemessen)
-        if dlg.result is None or dlg.result == alt:
-            return
-        self._snapshot()
-        el.text_override = dlg.result
-        self.redraw()
-        self.status.set(tr("msg.masstext.gesetzt") if dlg.result else tr("msg.masstext.zurueck"))
+        vorher = self._zustand()
+        dlg = PropertiesDialog(self.root, self, el)
+        if dlg.result:
+            self._push_undo(vorher)
+            self.redraw()
 
     def _viewport_unter_maus(self, event):
         x_mm, y_mm = self.px_to_mm(event.x, event.y)
@@ -8873,7 +8862,6 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 m.add_command(label=tr("menu.einfuegen.block_aufloesen"),
                               command=self.block_aufloesen)
             if any(isinstance(e, Bemassung) for e in self.auswahl):
-                m.add_command(label=tr("menu.bearbeiten.masstext"), command=self.masstext_aendern)
                 m_dez = tk.Menu(m, tearoff=0)
                 for n in range(0, 5):
                     m_dez.add_command(label=str(n),

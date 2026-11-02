@@ -7,6 +7,7 @@
 - Neu: **Knopf „Wände verbinden“** in der Werkzeugleiste: erste und zweite Wand anklicken, sie werden sofort zu einer Wand mit Gehrungsecke
 - Neu: Wandschraffur auch als **Vollfläche** (ausgefüllt); Standard-Linienabstand 180 mm
 - Fix: Schraffur lief durch Türen und Fenster; Türen und Fenster auf der Wandlinie (Lage „links/rechts“) wurden teils nicht in der Wand erkannt und schnitten keine Lücke
+- Änderung: **Das separate Fenster „Maßtext ändern“ entfällt:** Doppelklick auf eine Bemaßung öffnet wieder deren Eigenschaften (mit Feld „Angezeigter Text“, gemessenem Wert und „Messwert wiederherstellen“, Pfeilgröße, Endstück …); der Text steht auch im Eigenschaftenfenster (Strg+1)
 - Fix: **Eigenschaftenfenster bei Bemaßungen:** Texthöhe, Schriftart und Pfeilgröße lassen sich wieder einstellen (die Felder waren für Bemaßungen gesperrt)
 - Neu: **Endstück der Bemaßung wählbar:** Pfeil oder **diagonaler Strich** (Eigenschaftenfenster, Eigenschaften-Dialog und Werkzeugleiste); Schriftart der Maßzahl einstellbar
 - Neu: **Nachkommastellen der Bemaßung** einstellbar (0 bis 6): im Eigenschaftenfenster (Strg+1, auch für mehrere Bemaßungen gleichzeitig) und per Rechtsklick auf die Bemaßung › Nachkommastellen

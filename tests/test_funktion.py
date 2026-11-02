@@ -90,6 +90,9 @@ _g2 = _b1.geometrie()
 check(_g2["pfeile"] == [] and len(_g2["linien"]) == _n + 2, "Bemassung: Schraegstrich statt Pfeil")
 check(core.Bemassung(**{k: v for k, v in _b1.to_dict().items() if k != "typ"}).endstueck == "strich", "Endstueck speichern / laden")
 
+EG.anwenden([_b1], "text_override", "ca. <>"); check(_b1.text(1.0, False).startswith("ca. ") and EG.gemeinsame([_b1])["text_override"] == "ca. <>", "Palette: Angezeigter Text der Bemassung")
+EG.anwenden([_b1], "text_override", ""); check(_b1.text(1.0, False) == "800.0000" or _b1.text(1.0, False).startswith("800"), "Palette: Messwert wiederhergestellt")
+
 # Layer-Konstante
 check(core.FTEXT_LAYER == "F-Text" and core.FTEXT_LAYER in core.ELEKTRO_LAYER, "Layer F-Text")
 check(core.BEFEHLE["FTEXT"] == "tool:ftext", "Befehl FTEXT")

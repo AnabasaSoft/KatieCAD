@@ -658,12 +658,28 @@ class PropertiesDialog(tk.Toplevel):
                          values=list(BEM_RICHTUNGEN), width=18, state="readonly").grid(
                 row=row, column=1, sticky=tk.W, pady=3)
             row += 1
-            ttk.Label(f, text="Text (<> = Messwert):").grid(row=row, column=0,
+            ttk.Label(f, text=tr("dlg.masstext.label")).grid(row=row, column=0,
                                                              sticky=tk.W, pady=3)
             self.bem_text_var = tk.StringVar(value=element.text_override)
             ttk.Entry(f, textvariable=self.bem_text_var, width=22).grid(
                 row=row, column=1, sticky=tk.W, pady=3)
             row += 1
+            try:
+                alt = element.text_override
+                element.text_override = ""
+                gemessen = element.text(app._einh_faktor(), app.dezimalkomma.get())
+                element.text_override = alt
+                ttk.Label(f, text=tr("dlg.masstext.gemessen", wert=gemessen),
+                          style="Hint.TLabel").grid(row=row, column=0, sticky=tk.W, pady=2)
+                ttk.Button(f, text=tr("dlg.masstext.zurueck"),
+                           command=lambda: self.bem_text_var.set("")).grid(
+                    row=row, column=1, sticky=tk.W, pady=2)
+                row += 1
+                ttk.Label(f, text=tr("dlg.masstext.hinweis"), style="Hint.TLabel", wraplength=360,
+                          justify=tk.LEFT).grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=2)
+                row += 1
+            except Exception:
+                pass
         elif isinstance(element, Viewport):
             add_geo("X:", "x", element.x)
             add_geo("Y:", "y", element.y)
@@ -2188,6 +2204,13 @@ class EigenschaftenPalette(tk.Toplevel):
         cb.bind("<<ComboboxSelected>>", lambda e: self._anwenden("schriftart"))
         zeile(r, "schriftart", lambda: cb)
         r += 1
+        v = tk.StringVar()                                # dimensions: displayed text
+        self._vars["text_override"] = v
+        e = ttk.Entry(f, textvariable=v, width=24)
+        e.bind("<Return>", lambda ev: self._anwenden("text_override"))
+        e.bind("<FocusOut>", lambda ev: self._anwenden("text_override", nur_wenn_geaendert=True))
+        zeile(r, "text_override", lambda: e)
+        r += 1
         v = tk.StringVar()                                # dimensions: end piece
         self._vars["endstueck"] = v
         cb = ttk.Combobox(f, textvariable=v, width=14, state="readonly",
@@ -2262,6 +2285,8 @@ class EigenschaftenPalette(tk.Toplevel):
             if nur_wenn_geaendert and wert == self._angezeigt.get(feld):
                 return
             if wert == tr("dlg.eig.verschieden"):
+                return
+            if feld == "text_override" and wert == tr("dlg.eig.verschieden"):
                 return
             if feld == "endstueck":
                 wert = "strich" if wert == tr("dlg.eig.end.strich") else "pfeil"
