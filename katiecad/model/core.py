@@ -681,6 +681,8 @@ BEFEHLE = {
     "SPLINE": "tool:spline", "SPL": "tool:spline",
     "WAND": "tool:wand", "WALL": "tool:wand", "TUER": "tool:tuer", "TÜR": "tool:tuer",
     "DOOR": "tool:tuer", "FENSTER": "tool:fenster", "WINDOW": "tool:fenster",
+    "WANDVERBINDEN": "wand:verbinden", "WALLJOIN": "wand:verbinden", "VERBINDEN": "wand:verbinden",
+    "WANDSCHRAFFUR": "wand:schraffur", "WALLHATCH": "wand:schraffur",
     "RECHTECK": "tool:rechteck", "REC": "tool:rechteck", "RECTANG": "tool:rechteck",
     "TEXT": "tool:text", "T": "tool:text",
     "BEMASSUNG": "tool:bemassung", "BEM": "tool:bemassung", "DIM": "tool:bemassung",
@@ -1357,8 +1359,9 @@ class Spline(Polylinie):
 
 
 WAND_LAYER = "Wände"
-WAND_LAYER_FARBE = ("#d9a066", 0.5)          # colour, line weight of the automatic wall layer
+WAND_LAYER_FARBE = ("#c29bff", 0.5)          # colour, line weight of the automatic wall layer
 WAND_AUSRICHTUNGEN = ("mitte", "links", "rechts")
+WAND_SCHRAFFUREN = ("", "schraeg", "kreuz")      # none / diagonal / cross-hatch
 OEFFNUNG_VORGABE = {                          # plan symbols: door / window
     "tuer": {"breite": 1010.0, "hoehe": 2010.0, "bruestung": 0.0},
     "fenster": {"breite": 1250.0, "hoehe": 1250.0, "bruestung": 900.0},
@@ -1378,13 +1381,16 @@ class Wand(Polylinie):
     Doors and windows are separate objects (class Oeffnung); a door cuts the wall faces,
     which is computed by wand_verknuepfen()."""
 
-    def __init__(self, punkte, geschlossen=False, dicke=240.0, ausrichtung="mitte", **kw):
+    def __init__(self, punkte, geschlossen=False, dicke=240.0, ausrichtung="mitte",
+                 schraffur="", schraffur_abstand=60.0, **kw):
         kw.pop("oeffnungen", None)
         kw.pop("_luecken", None)
         super().__init__(punkte, geschlossen, **kw)
         self.typ = "wand"
         self.dicke = max(1.0, float(dicke))
         self.ausrichtung = ausrichtung if ausrichtung in WAND_AUSRICHTUNGEN else "mitte"
+        self.schraffur = schraffur if schraffur in WAND_SCHRAFFUREN else ""
+        self.schraffur_abstand = max(5.0, float(schraffur_abstand))
         self._luecken = []            # runtime only: [(segment, t0, t1)] door gaps
 
     def to_dict(self):
@@ -1437,8 +1443,86 @@ class Wand(Polylinie):
             R.append((pts[v][0] - orr * mx, pts[v][1] - orr * my))
         return L, R
 
-    def prims(self):
-        """Outline as polylines [(points, closed)]; door gaps are cut out."""
+    def prims(self, schraffur=True):
+        """Outline as polylines [(points, closed)]; door gaps are cut out. With schraffur=True
+        the hatch lines of the wall body are included (drawing, PDF, DXF)."""
+        out = self._kontur()
+        if schraffur and self.schraffur:
+            out = out + [(pl, False) for pl in self._schraffurlinien()]
+        return out
+
+    def koerper(self):
+        """Wall body as convex quadrilaterals (one per segment piece, door gaps left out)."""
+        segs = self._segmente()
+        if not segs:
+            return []
+        L, R = self._versatz_ecken()
+        pts = self.punkte
+        ol, orr = _wand_versatz(self.ausrichtung, self.dicke)
+        luecken = [[] for _ in segs]
+        for k, t0, t1 in getattr(self, "_luecken", []):
+            if 0 <= k < len(segs) and t1 > t0:
+                luecken[k].append((t0, t1))
+
+        def rand(k, t, links):
+            i, j = segs[k]
+            if t <= 0.0:
+                return (L if links else R)[i]
+            if t >= 1.0:
+                return (L if links else R)[j]
+            ax, ay = pts[i]
+            bx, by = pts[j]
+            d = math.hypot(bx - ax, by - ay) or 1.0
+            nx, ny = -(by - ay) / d, (bx - ax) / d
+            o = ol if links else -orr
+            return (ax + (bx - ax) * t + nx * o, ay + (by - ay) * t + ny * o)
+
+        quads = []
+        for k in range(len(segs)):
+            stuecke, t = [], 0.0
+            for t0, t1 in sorted(luecken[k]):
+                if t0 > t + 1e-9:
+                    stuecke.append((t, t0))
+                t = max(t, t1)
+            if t < 1.0 - 1e-9:
+                stuecke.append((t, 1.0))
+            for a, b in stuecke:
+                quads.append([rand(k, a, True), rand(k, b, True), rand(k, b, False), rand(k, a, False)])
+        return quads
+
+    def _schraffurlinien(self):
+        """Hatch lines clipped to the wall body: [[p, q]...]."""
+        winkel = [45.0] if self.schraffur == "schraeg" else [45.0, 135.0]
+        d = self.schraffur_abstand
+        out = []
+        for quad in self.koerper():
+            for w in winkel:
+                a = math.radians(w)
+                dx, dy = math.cos(a), math.sin(a)
+                nx, ny = -dy, dx
+                proj = [x * nx + y * ny for x, y in quad]
+                k0 = math.ceil(min(proj) / d - 1e-9)
+                k1 = math.floor(max(proj) / d + 1e-9)
+                for k in range(int(k0), int(k1) + 1):
+                    c = k * d
+                    treffer = []
+                    for q in range(4):
+                        a1, b1 = quad[q], quad[(q + 1) % 4]
+                        fa = a1[0] * nx + a1[1] * ny - c
+                        fb = b1[0] * nx + b1[1] * ny - c
+                        if (fa > 1e-9 and fb < -1e-9) or (fa < -1e-9 and fb > 1e-9):
+                            tt = fa / (fa - fb)
+                            treffer.append((a1[0] + (b1[0] - a1[0]) * tt, a1[1] + (b1[1] - a1[1]) * tt))
+                        elif abs(fa) <= 1e-9 and abs(fb) > 1e-9:
+                            treffer.append(a1)
+                    if len(treffer) >= 2:
+                        treffer.sort(key=lambda p: p[0] * dx + p[1] * dy)
+                        p0, p1 = treffer[0], treffer[-1]
+                        if math.hypot(p1[0] - p0[0], p1[1] - p0[1]) > 1e-6:
+                            out.append([p0, p1])
+        return out
+
+    def _kontur(self):
         segs = self._segmente()
         if not segs:
             return []
@@ -1484,7 +1568,7 @@ class Wand(Polylinie):
 
     def bbox(self):
         xs, ys = [], []
-        for pl, _c in self.prims():
+        for pl, _c in self.prims(schraffur=False):
             xs += [p[0] for p in pl]
             ys += [p[1] for p in pl]
         if not xs:
@@ -1674,6 +1758,64 @@ def wand_verknuepfen(elemente):
         o.winkel = math.degrees(math.atan2(uy, ux)) % 360.0
         if o.art == "tuer":
             w._luecken.append((k, s0 / ln, s1 / ln))
+
+
+def _gerade_schnitt(p1, p2, q1, q2):
+    """Intersection of the infinite lines p1-p2 and q1-q2 or None (parallel)."""
+    d1 = (p2[0] - p1[0], p2[1] - p1[1])
+    d2 = (q2[0] - q1[0], q2[1] - q1[1])
+    n = d1[0] * d2[1] - d1[1] * d2[0]
+    if abs(n) < 1e-9 * (math.hypot(*d1) * math.hypot(*d2) or 1.0):
+        return None
+    t = ((q1[0] - p1[0]) * d2[1] - (q1[1] - p1[1]) * d2[0]) / n
+    return (p1[0] + d1[0] * t, p1[1] + d1[1] * t)
+
+
+def wand_verbinden(a, b):
+    """Joins two walls at their nearest ends into ONE wall (corner or straight): the centre
+    lines are extended / trimmed to their intersection (mitred corner).
+    -> {"punkte", "rev_a", "rev_b", "dicke", "ausrichtung"} or the error key (str):
+    "gleich", "geschlossen", "zu_kurz", "parallel", "zu_weit"."""
+    if a is b:
+        return "gleich"
+    if a.geschlossen or b.geschlossen:
+        return "geschlossen"
+    if len(a.punkte) < 2 or len(b.punkte) < 2:
+        return "zu_kurz"
+    best = None
+    for ea in (0, -1):
+        for eb in (0, -1):
+            pa, pb = a.punkte[ea], b.punkte[eb]
+            dist = math.hypot(pa[0] - pb[0], pa[1] - pb[1])
+            if best is None or dist < best[0]:
+                best = (dist, ea, eb)
+    _d, ea, eb = best
+    pa = list(a.punkte)
+    pb = list(b.punkte)
+    rev_a = ea == 0                  # a must end at the joint
+    rev_b = eb == -1                 # b must start at the joint
+    if rev_a:
+        pa.reverse()
+    if rev_b:
+        pb.reverse()
+    limit = max(a.dicke, b.dicke) * 6.0
+    x = _gerade_schnitt(pa[-2], pa[-1], pb[0], pb[1])
+    if x is None:                    # parallel: only a short straight bridge is allowed
+        if math.hypot(pa[-1][0] - pb[0][0], pa[-1][1] - pb[0][1]) > limit:
+            return "parallel"
+        punkte = pa + pb
+    else:
+        if (math.hypot(x[0] - pa[-1][0], x[1] - pa[-1][1]) > limit
+                or math.hypot(x[0] - pb[0][0], x[1] - pb[0][1]) > limit):
+            return "zu_weit"
+        punkte = pa[:-1] + [x] + pb[1:]
+    sauber = [punkte[0]]
+    for p in punkte[1:]:
+        if math.hypot(p[0] - sauber[-1][0], p[1] - sauber[-1][1]) > 1e-6:
+            sauber.append(p)
+    tausch = {"links": "rechts", "rechts": "links", "mitte": "mitte"}
+    return {"punkte": sauber, "rev_a": rev_a, "rev_b": rev_b, "dicke": a.dicke,
+            "ausrichtung": tausch[a.ausrichtung] if rev_a else a.ausrichtung}
 
 
 def wand_in_linien(elemente):

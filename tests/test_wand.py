@@ -83,11 +83,56 @@ check(all(type(e) is core.Polylinie for e in bl) and len(bl) > 4, "Block aus Wan
 # hit test
 check(w.punkt_im_koerper(2000, 100) and not w.punkt_im_koerper(2000, 500), "Klick auf Wandkoerper")
 check(t5.trifft(2000, 0) and not t5.trifft(2000, 500), "Klick in die Tuer")
+# ---- hatch ----
+hw = Wand([(0, 0), (3000, 0)], dicke=240, schraffur="schraeg", schraffur_abstand=60)
+n_k = len(hw.prims(schraffur=False)); n_s = len(hw.prims())
+check(n_s > n_k + 20, "Schraffur erzeugt Linien")
+for pl, _c in hw.prims()[n_k:]:
+    for (x, y) in pl:
+        assert -1e-6 <= x <= 3000 + 1e-6 and -120 - 1e-6 <= y <= 120 + 1e-6, "Schraffur ausserhalb"
+check(True, "Schraffur bleibt im Wandkoerper")
+kw = Wand([(0, 0), (3000, 0)], dicke=240, schraffur="kreuz", schraffur_abstand=60)
+check(len(kw.prims()) > len(hw.prims()), "Kreuzschraffur hat mehr Linien")
+check(len(Wand([(0, 0), (3000, 0)]).prims()) == n_k, "ohne Schraffur nur Kontur")
+# door gap: no hatch line inside the gap
+hd = Wand([(0, 0), (3000, 0)], dicke=240, schraffur="schraeg", schraffur_abstand=40)
+hd2 = Oeffnung("tuer", 1500, 0, 0.0, breite=1000)
+wand_verknuepfen([hd, hd2])
+for pl, _c in hd.prims()[len(hd.prims(schraffur=False)):]:
+    assert not (max(p[0] for p in pl) > 1000 + 1e-6 and min(p[0] for p in pl) < 2000 - 1e-6), "Schraffur in der Tuerluecke"
+check(True, "keine Schraffur in der Tuerluecke")
+d = json.loads(json.dumps(hw.to_dict())); d.pop("typ")
+check(Wand(**d).schraffur == "schraeg" and Wand(**d).schraffur_abstand == 60, "Schraffur wird gespeichert")
+# ---- join ----
+a = Wand([(0, 0), (3000, 0)], dicke=240); b = Wand([(3100, 50), (3100, 2000)], dicke=240)
+r = core.wand_verbinden(a, b)
+check(isinstance(r, dict) and r["punkte"] == [(0, 0), (3100, 0), (3100, 2000)] or
+      [tuple(round(c, 3) for c in p) for p in r["punkte"]] == [(0, 0), (3100, 0), (3100, 2000)], "Verbinden: Ecke am Schnittpunkt")
+check(not r["rev_a"] and not r["rev_b"], "Verbinden: keine Umkehrung noetig")
+c = Wand([(3100, 2000), (3100, 50)], dicke=240)          # drawn the other way round
+r2 = core.wand_verbinden(a, c)
+check(r2["rev_b"] and not r2["rev_a"], "Verbinden: B wird umgedreht")
+r3 = core.wand_verbinden(Wand([(3000, 0), (0, 0)], dicke=240, ausrichtung="links"), b)
+check(r3["rev_a"] and r3["ausrichtung"] == "rechts", "Verbinden: A umgedreht tauscht die Lage")
+g = Wand([(3150, 0), (6000, 0)], dicke=240)
+rg = core.wand_verbinden(a, g)
+check([round(p[0]) for p in rg["punkte"]] == [0, 3000, 3150, 6000], "Verbinden gerade (Parallele mit kleiner Luecke)")
+check(core.wand_verbinden(a, a) == "gleich", "Verbinden: gleiche Wand")
+check(core.wand_verbinden(a, Wand([(0, 0), (1, 0), (1, 1)], geschlossen=True)) == "geschlossen", "Verbinden: geschlossen")
+check(core.wand_verbinden(a, Wand([(0, 9000), (3000, 9000)])) == "parallel", "Verbinden: parallel und weit weg")
+check(core.wand_verbinden(a, Wand([(9000, 5000), (9000, 6000)])) == "zu_weit", "Verbinden: zu weit")
+# the joined wall is one outline with a mitred outer corner
+m = Wand(r["punkte"], dicke=240)
+check(not any(len(pl) == 2 and abs(pl[0][0] - 3100) < 1e-6 and abs(pl[1][0] - 3100) < 1e-6
+              and abs(pl[0][1]) < 1e-6 for pl, _c in m.prims()), "keine Endkappe mehr in der Ecke")
 for k in ("tb.wz.wand", "tb.wz.tuer", "tb.wz.fenster", "dlg.wand.titel", "dlg.wand.titel_tuer", "dlg.wand.spiegeln",
           "dlg.wand.umkehren", "menu.wand.spiegeln", "menu.wand.umkehren", "menu.wand.tuer_bearbeiten",
-          "msg.wand.klick", "menu.einfuegen.wand"):
+          "msg.wand.klick", "menu.einfuegen.wand", "menu.wand.verbinden", "menu.wand.schraffur", "dlg.wand.schraffur",
+          "msg.wand.zwei", "msg.wand.verb_zu_weit"):
     check(k in I.TEXTE["de"] and k in I.TEXTE["en"], k)
 check(core.BEFEHLE.get("WAND") == "tool:wand", "Befehl WAND")
+check(core.BEFEHLE.get("WANDVERBINDEN") == "wand:verbinden", "Befehl WANDVERBINDEN")
+check(core.WAND_LAYER_FARBE[0] == "#c29bff", "Wandebene in der Standardfarbe")
 from katiecad.ui import icons as IC
 check(all(n in IC.NAMEN for n in ("wand", "tuer", "fenster")), "Icons registriert")
 print(f"test_wand - {ok} Checks bestanden")

@@ -72,7 +72,7 @@ from katiecad.model.core import (
     E_DEVICES, E_LINES, E_CABLE, E_CLAMPS, E_PIN, ELEKTRO_LAYER, FTEXT_LAYER,
     Layer, Layout, Element, Linie, Kreis, Bogen, Rechteck, Polylinie, Text,
     Ellipse, Spline, Wand, Oeffnung, WAND_LAYER, WAND_LAYER_FARBE,
-    wand_verknuepfen, wand_in_linien,
+    wand_verknuepfen, wand_in_linien, wand_verbinden,
     Bemassung, Viewport, Schraffur, Bild, konturen_aus_elementen, bereich_an_punkt,
     AttributDefinition, Leitung, Verbindungspunkt, Querverweis,
     Verbindung, ElektroMaske, Klemme, Kabel, Koordinatenfeld, ZUSAMMENGESETZT,
@@ -1292,6 +1292,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                            command=lambda: self._werkzeug_aus_menue("tuer"))
         m_einf.add_command(label=tr("menu.einfuegen.fenster"),
                            command=lambda: self._werkzeug_aus_menue("fenster"))
+        m_einf.add_command(label=tr("menu.wand.verbinden"), command=self.wand_verbinden_befehl)
+        m_einf.add_command(label=tr("menu.wand.schraffur"), command=self.wand_schraffur_umschalten)
         m_einf.add_separator()
         m_einf.add_command(label=tr("menu.einfuegen.text"),
                            command=lambda: self._werkzeug_aus_menue("text"))
@@ -3367,7 +3369,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 if isinstance(el, Viewport):
                     zentrum((x1 + x2) / 2, (y1 + y2) / 2)
             elif isinstance(el, (Wand, Oeffnung)):
-                for pl, c in el.prims():
+                for pl, c in (el.prims(schraffur=False) if isinstance(el, Wand) else el.prims()):
                     for (x, y) in pl:
                         ende(x, y)
                     pts = list(pl) + ([pl[0]] if c and len(pl) > 2 else [])
@@ -4321,7 +4323,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             for i in range(4):
                 segs.append((pts[i], pts[(i + 1) % 4]))
         elif isinstance(el, (Wand, Oeffnung)):
-            for pl, c in el.prims():
+            for pl, c in (el.prims(schraffur=False) if isinstance(el, Wand) else el.prims()):
                 pts = list(pl) + ([pl[0]] if c and len(pl) > 2 else [])
                 for i in range(len(pts) - 1):
                     segs.append((pts[i], pts[i + 1]))
@@ -4921,6 +4923,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     # ---- building walls -------------------------------------------------
     _wand_dicke = 240.0
     _wand_ausrichtung = "mitte"
+    _wand_schraffur = ""
+    _wand_schraffur_abstand = 60.0
 
     def _wand_layer_sicherstellen(self):
         """Own layer for walls (created on first use)."""
@@ -4945,13 +4949,17 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     def _wand_werkzeug_start(self):
         """Wall tool selected: ask thickness and alignment, create the layer."""
         self._wand_layer_sicherstellen()
-        dlg = WandDialog(self.root, self._wand_dicke, self._wand_ausrichtung)
+        dlg = WandDialog(self.root, self._wand_dicke, self._wand_ausrichtung,
+                         schraffur=self._wand_schraffur,
+                         schraffur_abstand=self._wand_schraffur_abstand)
         if dlg.result is None:
             self.aktives_werkzeug.set("auswahl")
             self._werkzeug_toolbar()
             return
         self._wand_dicke = dlg.result["dicke"]
         self._wand_ausrichtung = dlg.result["ausrichtung"]
+        self._wand_schraffur = dlg.result["schraffur"]
+        self._wand_schraffur_abstand = dlg.result["schraffur_abstand"]
         self.status.set(tr("msg.wand.klick"))
 
     def _wand_unter_punkt(self, pt):
@@ -4986,13 +4994,58 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self.status.set(tr("msg.wand.eingesetzt", art=tr("dlg.wand.art." + art)))
 
     def _wand_bearbeiten(self, el):
-        dlg = WandDialog(self.root, el.dicke, el.ausrichtung, laenge=el.laenge())
+        dlg = WandDialog(self.root, el.dicke, el.ausrichtung, laenge=el.laenge(),
+                         schraffur=el.schraffur, schraffur_abstand=el.schraffur_abstand)
         if dlg.result is None:
             return
         self._snapshot()
         el.dicke = dlg.result["dicke"]
         el.ausrichtung = dlg.result["ausrichtung"]
+        el.schraffur = dlg.result["schraffur"]
+        el.schraffur_abstand = dlg.result["schraffur_abstand"]
         self.redraw()
+
+    def wand_schraffur_umschalten(self):
+        """Hatch on / off for the selected walls (no hatch command needed)."""
+        ziele = [e for e in self.auswahl if isinstance(e, Wand)]
+        if not ziele:
+            self.status.set(tr("msg.wand.waehlen"))
+            return
+        self._snapshot()
+        an = not all(e.schraffur for e in ziele)
+        for e in ziele:
+            e.schraffur = "schraeg" if an else ""
+        self.redraw()
+
+    def wand_verbinden_befehl(self):
+        """Joins two selected walls into ONE wall (corner or straight, mitred)."""
+        waende = [e for e in self.auswahl if isinstance(e, Wand)]
+        if len(waende) != 2:
+            self.status.set(tr("msg.wand.zwei"))
+            return
+        a, b = waende
+        wand_verknuepfen(self.elemente)
+        r = wand_verbinden(a, b)
+        if isinstance(r, str):
+            self.status.set(tr("msg.wand.verb_" + r))
+            return
+        # doors / windows sitting on a wall whose direction is reversed keep their look
+        umgedreht = ([a] if r["rev_a"] else []) + ([b] if r["rev_b"] else [])
+        self._snapshot()
+        for o in self.elemente:
+            if isinstance(o, Oeffnung) and any(w.punkt_im_koerper(o.x, o.y) for w in umgedreht):
+                o.spiegeln = not o.spiegeln
+                o.umkehren = not o.umkehren
+        a.punkte = [tuple(p) for p in r["punkte"]]
+        a.dicke = r["dicke"]
+        a.ausrichtung = r["ausrichtung"]
+        a.schraffur = a.schraffur or b.schraffur
+        liste = self._ctx_liste()
+        if b in liste:
+            liste.remove(b)
+        self.auswahl = [a]
+        self.redraw()
+        self.status.set(tr("msg.wand.verbunden"))
 
     def _oeffnung_bearbeiten(self, el):
         dlg = OeffnungDialog(self.root, el)
@@ -5019,6 +5072,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 self._ziel_liste().append(Wand(
                     self.aktuelle_polylinie, geschlossen=geschlossen,
                     dicke=self._wand_dicke, ausrichtung=self._wand_ausrichtung,
+                    schraffur=self._wand_schraffur, schraffur_abstand=self._wand_schraffur_abstand,
                     **self._wand_layer_daten()))
             elif self.aktives_werkzeug.get() == "spline":
                 self._ziel_liste().append(Spline(self.aktuelle_polylinie,
@@ -8542,6 +8596,10 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self.block_speichern_datei()
         elif cmd == "block:laden":
             self.block_laden_datei()
+        elif cmd == "wand:verbinden":
+            self.wand_verbinden_befehl()
+        elif cmd == "wand:schraffur":
+            self.wand_schraffur_umschalten()
         elif cmd == "blatt:neu":
             self.blatt_neu()
         elif cmd == "delete":
@@ -8639,6 +8697,12 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                               command=self.block_aufloesen)
             if any(isinstance(e, Bemassung) for e in self.auswahl):
                 m.add_command(label=tr("menu.bearbeiten.masstext"), command=self.masstext_aendern)
+            if any(isinstance(e, Wand) for e in self.auswahl):
+                m.add_command(label=tr("menu.wand.schraffur"),
+                              command=self.wand_schraffur_umschalten)
+                if sum(isinstance(e, Wand) for e in self.auswahl) == 2:
+                    m.add_command(label=tr("menu.wand.verbinden"),
+                                  command=self.wand_verbinden_befehl)
             if any(isinstance(e, Oeffnung) for e in self.auswahl):
                 m.add_command(label=tr("menu.wand.tuer_bearbeiten"),
                               command=lambda: self._oeffnung_bearbeiten(
