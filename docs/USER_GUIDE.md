@@ -378,6 +378,7 @@ changes in them are lost; your drawing sheets stay untouched.
 | Ctrl+A | Select all |
 | Del | Delete selection |
 | ESC | Cancel / clear selection |
+| F1 | Window listing all keyboard shortcuts, mouse actions and commands (scrollable, with search; also Help > Keyboard shortcuts and commands) |
 | F2 | Sheet properties (name, installation location) |
 | F3 / F7 / F8 / F9 | Object snap / show grid / ortho / grid snap |
 | F4 | Show / hide side bar |

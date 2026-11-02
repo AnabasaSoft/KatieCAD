@@ -384,6 +384,7 @@ unverändert.
 | Strg+A | Alles markieren |
 | Entf | Auswahl löschen |
 | ESC | Abbrechen / Auswahl aufheben |
+| F1 | Fenster mit allen Tastenkürzeln, Maus-Aktionen und Befehlen (scrollbar, mit Suchfeld; auch Hilfe › Tastenkürzel und Befehle) |
 | F2 | Blatt-Eigenschaften (Name, Einbauort) |
 | F3 / F7 / F8 / F9 | Objektfang / Raster anzeigen / Ortho / Rasterfang |
 | F4 | Seitenleiste ein-/ausblenden |

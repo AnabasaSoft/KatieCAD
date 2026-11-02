@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.3
+- New: **F1 opens an overview of all keyboard shortcuts, mouse actions and commands** (scrollable, with search field; also Help > Keyboard shortcuts and commands). The command list is generated from the program's command table, so it stays complete
 - New: generator `tools/make_symbols_einpolig.py` for **single-pole symbols** (folder "12 Single-pole", attribute POLE for the pole count, tick "Single-pole representation" preset); writes only into its own output folder
 - New: **single-pole representation as second drawing:** tick "Single-pole representation" in the dialog of device mask, block, terminal and cable. Symbols marked this way are counted in no list (device, parts, terminal, cable, PLC list), not in the net, not in cross references, not in the project check and not in auto-numbering - drawing the same device single- and multi-pole produces no duplicates
 - New: **walls, doors and windows for building floor plans** (Insert > Wall / Door in wall / Window in wall): adjustable wall thickness and position of the line, own layer "Wände", mitred corners, object snap on all wall edges; doors and windows are objects of their own (placed into the wall by click, movable and resizable by grips, double click = only their size, hinge side and opening direction), a door cuts the gap into the wall automatically

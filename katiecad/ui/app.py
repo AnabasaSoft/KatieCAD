@@ -1487,6 +1487,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                           bg=FARBEN["bg_mittel"], fg=FARBEN["cyan"],
                           activebackground=FARBEN["cyan"],
                           activeforeground=FARBEN["bg_dunkel"])
+        m_hilfe.add_command(label=tr("menu.hilfe.tasten"), command=self.tastenhilfe_zeigen,
+                            accelerator="F1")
         m_hilfe.add_command(label=tr("menu.hilfe.felder"), command=self.schriftkopf_felder_pruefen)
         m_hilfe.add_command(label=tr("menu.hilfe.info"), command=self.zeige_info_fenster)
         if _MAC:        # app menu "About KatieCAD" -> our own info window
@@ -2584,6 +2586,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self.root.bind("<Control-z>", lambda e: self.undo())
         self.root.bind("<Control-Z>", lambda e: self.undo())
         self.root.bind("<Control-y>", lambda e: self.redo())
+        self.root.bind("<F1>", lambda e: self.tastenhilfe_zeigen())
         self.root.bind("<F2>", lambda e: self.blatt_umbenennen())
         self.root.bind("<F4>", lambda e: self.seitenleiste_umschalten())
         self.root.bind("<Control-Y>", lambda e: self.redo())
@@ -5929,6 +5932,12 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     # --------------------------------------------------------
     # Info window
     # --------------------------------------------------------
+    def tastenhilfe_zeigen(self, event=None):
+        """F1: scrollable list of all keys, mouse actions and commands."""
+        from katiecad.ui import tastenhilfe
+        tastenhilfe.zeige(self)
+        return "break"
+
     def zeige_info_fenster(self):
         alt = getattr(self, "_info_fenster", None)
         try:
