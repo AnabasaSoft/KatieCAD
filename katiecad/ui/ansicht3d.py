@@ -525,6 +525,7 @@ class Ansicht3D(tk.Frame):
         c.bind("<Configure>", self.on_groesse)
         c.bind("<Escape>", lambda e: self.abbrechen())
         c.bind("<Return>", lambda e: self._skizze_abschliessen())
+        c.bind("<Key>", self.on_taste)
 
     # ------------------------------------------------------------------
     # camera
@@ -1576,6 +1577,8 @@ class Ansicht3D(tk.Frame):
             if not d["bewegt"]:
                 d["bewegt"] = True
                 self._manip_beginn(d)
+            if d.get("tipp"):                    # a value is being typed: the mouse is ignored
+                return
             mm = S.verschiebung_mm(d["info"], e.x - d["x"], e.y - d["y"], self._raster_fang())
             self._achsfang = []
             if d.get("modus") == "verschieben":
@@ -1644,6 +1647,56 @@ class Ansicht3D(tk.Frame):
                 self.zeichne()
                 self.info_var.set(tr("d3.msg.achse", achse=d["achse"].upper()))
                 self.wert_var.set("")
+
+    @staticmethod
+    def _zahl_tippen(text):
+        """'300', '-12,5' -> float or None."""
+        try:
+            return float(text.strip().replace(",", "."))
+        except ValueError:
+            return None
+
+    def on_taste(self, e):
+        """Typing digits while an axis drag is running sets the distance exactly
+        (Enter applies it, BackSpace deletes); with an axis chosen (click without drag)
+        the digits go into the value field, Enter applies."""
+        d = self._drag
+        ch = e.char or ""
+        if d and d["art"] == "manip" and d.get("bewegt"):
+            puffer = d.get("tipp", "")
+            if e.keysym in ("Return", "KP_Enter"):
+                zahl = self._zahl_tippen(puffer)
+                if zahl is None:
+                    return "break"
+                self._manip_setzen(d, zahl * self.app._einh_faktor())
+                self._drag = d
+                self.on_los(e)                      # finish like a mouse release
+                return "break"
+            if e.keysym == "BackSpace":
+                puffer = puffer[:-1]
+            elif ch and ch in "0123456789.,-":
+                puffer += ch
+            else:
+                return None
+            d["tipp"] = puffer
+            zahl = self._zahl_tippen(puffer)
+            if zahl is not None:
+                self._manip_setzen(d, zahl * self.app._einh_faktor())
+                self.zeichne()
+            self.info_var.set(tr("d3.msg.tippen", wert=puffer or "0",
+                                 einheit=self.app.einheit.get()))
+            return "break"
+        if (self._achse and self.app.auswahl and self._skiz is None
+                and self._platz is None):
+            if ch and ch in "0123456789.,-":
+                self.wert_var.set(self.wert_var.get() + ch)
+                self.info_var.set(tr("d3.msg.tippen", wert=self.wert_var.get(),
+                                     einheit=self.app.einheit.get()))
+                return "break"
+            if e.keysym == "BackSpace":
+                self.wert_var.set(self.wert_var.get()[:-1])
+                return "break"
+        return None
 
     def on_bewegt(self, e):
         self._maus = e
@@ -1743,6 +1796,12 @@ class Ansicht3D(tk.Frame):
         height'), line: 'length' or 'length<angle', polyline: 'x,y' or '@dx,dy'. -> True if used."""
         m = self._modus
         if m not in self.SKIZZEN:
+            # a plain number moves the selection exactly along the chosen axis
+            if (self._skiz is None and self._platz is None and self.app.auswahl
+                    and self._zahl_tippen(text) is not None):
+                self.wert_var.set(text.strip())
+                self.wert_anwenden()
+                return True
             return False
         f = self.app._einh_faktor()
         sk = self._skiz

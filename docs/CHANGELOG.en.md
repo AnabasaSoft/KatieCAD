@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.3
+- New: **3D - exact distance when moving:** while dragging an axis arrow just type the number (e.g. `300`, Backspace deletes, `-` = opposite direction) and confirm with Enter; also after clicking the arrow or via the input line
 - New: **3D - object snap when moving and placing also with the edge midpoints of the moving body** (previously only its corners); the edge midpoints of existing bodies were already snapped
 - Fix: **moved mask texts (IND, MAN, TYP, PER, number of poles) keep their position on "Create device"** (they used to jump back to the default position); moving a text later on the placed device overrides the preset
 - New: **F1 opens an overview of all keyboard shortcuts, mouse actions and commands** (scrollable, with search field; also Help > Keyboard shortcuts and commands). The command list is generated from the program's command table, so it stays complete

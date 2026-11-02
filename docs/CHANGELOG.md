@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.3
+- Neu: **3D – exakter Abstand beim Verschieben:** Beim Ziehen am Achsenpfeil einfach die Zahl tippen (z. B. `300`, Rücktaste löscht, `-` = Gegenrichtung) und mit Enter übernehmen; ebenso nach einem Klick auf den Pfeil oder über die Eingabezeile
 - Neu: **3D – Objektfang beim Verschieben und Platzieren auch mit den Kantenmitten des bewegten Körpers** (bisher nur mit dessen Ecken); die Kantenmitten bestehender Körper wurden schon gefangen
 - Fix: **Verschobene Maskentexte (IND, MAN, TYP, PER, Polzahl) bleiben beim „Gerät erstellen“ an ihrer Position** (sie sprangen vorher auf die Standardlage zurück); ein späteres Verschieben am platzierten Gerät überschreibt die Vorgabe
 - Neu: **F1 öffnet eine Übersicht aller Tastenkürzel, Maus-Aktionen und Befehle** (scrollbar, mit Suchfeld; auch Hilfe › Tastenkürzel und Befehle). Die Befehlsliste wird aus der Befehlstabelle des Programms erzeugt und bleibt dadurch vollständig
