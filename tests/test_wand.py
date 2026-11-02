@@ -218,4 +218,11 @@ for k in ("tb.wz.raum", "menu.einfuegen.raum", "menu.raum.bearbeiten", "msg.raum
           "dlg.raum.titel", "dlg.raum.nummer", "dlg.raum.bezeichnung", "dlg.raum.hoehe", "dlg.raum.flaeche", "dlg.raum.hinweis"):
     check(k in I.TEXTE["de"] and k in I.TEXTE["en"], k)
 check(core.BEFEHLE.get("RAUM") == "tool:raum" and "raum" in IC.NAMEN, "Befehl und Icon Raum")
+# Ecken bleiben Ecken (kein T-Anschluss), auch mit Ueberstand / Luecke
+for _n, (_p, _q) in {"exakt": ([(0, 0), (3000, 0)], [(3000, 0), (3000, 3000)]),
+                     "Luecke": ([(0, 0), (2900, 0)], [(3000, 100), (3000, 3000)]),
+                     "Ueberstand": ([(0, 0), (3200, 0)], [(3000, -200), (3000, 3000)]),
+                     "gerade": ([(0, 0), (3000, 0)], [(3100, 0), (6000, 0)])}.items():
+    _r = core.wand_verbinden(core.Wand(_p, dicke=240), core.Wand(_q, dicke=240))
+    check(isinstance(_r, dict) and _r.get("modus") != "t" and "punkte" in _r, "Ecke verschmilzt: " + _n)
 print(f"test_wand - {ok} Checks bestanden")

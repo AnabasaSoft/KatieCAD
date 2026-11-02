@@ -1977,6 +1977,27 @@ def wand_schliessen(w):
 
 
 def wand_verbinden(a, b):
+    """Joins two walls. Corner / straight: both are joined at their nearest ends into ONE wall,
+    the centre lines are extended / trimmed to their intersection (mitred corner). T junction
+    (the end of one wall lies far from the ends of the other, on its middle): the end is moved
+    onto the other wall -> {"modus": "t", "wand", "index", "punkt"}.
+    -> {"punkte", "rev_a", "rev_b", "dicke", "ausrichtung"} or {"modus": "t", ...} or the error
+    key (str): "gleich", "geschlossen", "zu_kurz", "parallel", "zu_weit"."""
+    if a is b:
+        return "gleich"
+    if len(a.punkte) < 2 or len(b.punkte) < 2:
+        return "zu_kurz"
+    r = _wand_l_verbinden(a, b)
+    if isinstance(r, dict) and max(r["da"], r["db"]) <= 3.0 * max(a.dicke, b.dicke):
+        return r                                     # a real corner: merge
+    ts = [t for t in (_wand_t_anschluss(a, b), _wand_t_anschluss(b, a)) if t]
+    if ts:
+        return min(ts, key=lambda t: math.hypot(t["punkt"][0] - t["wand"].punkte[t["index"]][0],
+                                                t["punkt"][1] - t["wand"].punkte[t["index"]][1]))
+    return r
+
+
+def _wand_l_verbinden(a, b):
     """Joins two walls. T junction (end of one wall on the middle of the other): the end is moved
     onto the other wall -> {"modus": "t", "wand", "index", "punkt"}. Otherwise both are joined at
     their nearest ends into ONE wall (corner or straight): the centre lines are extended / trimmed
@@ -1987,11 +2008,6 @@ def wand_verbinden(a, b):
         return "gleich"
     if len(a.punkte) < 2 or len(b.punkte) < 2:
         return "zu_kurz"
-    ts = [t for t in (_wand_t_anschluss(a, b), _wand_t_anschluss(b, a)) if t]
-    if ts:
-        t = min(ts, key=lambda t: math.hypot(t["punkt"][0] - t["wand"].punkte[t["index"]][0],
-                                             t["punkt"][1] - t["wand"].punkte[t["index"]][1]))
-        return t
     if a.geschlossen or b.geschlossen:
         return "geschlossen"
     best = None
@@ -2016,18 +2032,22 @@ def wand_verbinden(a, b):
         if math.hypot(pa[-1][0] - pb[0][0], pa[-1][1] - pb[0][1]) > limit:
             return "parallel"
         punkte = pa + pb
+        da = db = math.hypot(pa[-1][0] - pb[0][0], pa[-1][1] - pb[0][1])
     else:
         if (math.hypot(x[0] - pa[-1][0], x[1] - pa[-1][1]) > limit
                 or math.hypot(x[0] - pb[0][0], x[1] - pb[0][1]) > limit):
             return "zu_weit"
         punkte = pa[:-1] + [x] + pb[1:]
+        da = math.hypot(x[0] - pa[-1][0], x[1] - pa[-1][1])
+        db = math.hypot(x[0] - pb[0][0], x[1] - pb[0][1])
     sauber = [punkte[0]]
     for p in punkte[1:]:
         if math.hypot(p[0] - sauber[-1][0], p[1] - sauber[-1][1]) > 1e-6:
             sauber.append(p)
     tausch = {"links": "rechts", "rechts": "links", "mitte": "mitte"}
     return {"punkte": sauber, "rev_a": rev_a, "rev_b": rev_b, "dicke": a.dicke,
-            "ausrichtung": tausch[a.ausrichtung] if rev_a else a.ausrichtung}
+            "ausrichtung": tausch[a.ausrichtung] if rev_a else a.ausrichtung,
+            "da": da, "db": db}
 
 
 def wand_in_linien(elemente):
