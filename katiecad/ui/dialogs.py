@@ -259,178 +259,125 @@ class MasstextDialog(tk.Toplevel):
 
 
 # ============================================================
-# Building wall: thickness, alignment, doors and windows
+# Building wall / door / window
 # ============================================================
-class WandDialog(tk.Toplevel):
-    """Wall properties. vorgabe=True: only thickness and alignment (defaults for new walls).
-    result = {"dicke", "ausrichtung", "oeffnungen"} or None."""
-    AUSR = ("mitte", "links", "rechts")
-    FELDER = ("abstand", "breite", "hoehe", "bruestung")
+def _zahl(var, minimum=0.0, strikt=False):
+    try:
+        v = float(var.get().replace(",", "."))
+    except ValueError:
+        return None
+    if v < minimum or (strikt and v <= minimum):
+        return None
+    return v
 
-    def __init__(self, parent, dicke=240.0, ausrichtung="mitte", oeffnungen=None,
-                 laenge=None, vorgabe=False, auswahl=None):
+
+class WandDialog(tk.Toplevel):
+    """Wall: thickness and position of the drawn line.
+    result = {"dicke", "ausrichtung"} or None."""
+    AUSR = ("mitte", "links", "rechts")
+
+    def __init__(self, parent, dicke=240.0, ausrichtung="mitte", laenge=None):
         super().__init__(parent)
         self.result = None
-        self._o = [dict(o) for o in (oeffnungen or [])]
-        self._vorgabe = vorgabe
-        self.title(tr("dlg.wand.titel_vorgabe" if vorgabe else "dlg.wand.titel"))
-        if not vorgabe:
-            self.geometry("640x560")
+        self.title(tr("dlg.wand.titel" if laenge is not None else "dlg.wand.titel_vorgabe"))
         self.transient(parent)
         _modal(self)
         self.configure(bg=FARBEN["bg_mittel"])
-        f = ttk.Frame(self, padding=12)
+        f = ttk.Frame(self, padding=14)
         f.pack(fill=tk.BOTH, expand=True)
-        r = ttk.Frame(f)
-        r.pack(fill=tk.X)
-        ttk.Label(r, text=tr("dlg.wand.dicke")).grid(row=0, column=0, sticky=tk.W, pady=3)
+        ttk.Label(f, text=tr("dlg.wand.dicke")).grid(row=0, column=0, sticky=tk.W, pady=4)
         self.dicke_var = tk.StringVar(value=f"{dicke:g}")
-        e = ttk.Entry(r, textvariable=self.dicke_var, width=10)
-        e.grid(row=0, column=1, sticky=tk.W, padx=6)
+        e = ttk.Entry(f, textvariable=self.dicke_var, width=10)
+        e.grid(row=0, column=1, sticky=tk.W, padx=8)
         e.focus_set()
         e.select_range(0, tk.END)
-        ttk.Label(r, text=tr("dlg.wand.ausrichtung")).grid(row=1, column=0, sticky=tk.W, pady=3)
+        ttk.Label(f, text=tr("dlg.wand.ausrichtung")).grid(row=1, column=0, sticky=tk.W, pady=4)
         self.ausr_var = tk.StringVar(value=tr("dlg.wand.ausr." + ausrichtung))
-        ttk.Combobox(r, textvariable=self.ausr_var, state="readonly", width=34,
+        ttk.Combobox(f, textvariable=self.ausr_var, state="readonly", width=34,
                      values=[tr("dlg.wand.ausr." + a) for a in self.AUSR]
-                     ).grid(row=1, column=1, sticky=tk.W, padx=6)
+                     ).grid(row=1, column=1, sticky=tk.W, padx=8)
         if laenge is not None:
-            ttk.Label(r, text=tr("dlg.wand.laenge", wert=f"{laenge:.0f}"),
-                      style="Hint.TLabel").grid(row=2, column=0, columnspan=2, sticky=tk.W)
-        if not vorgabe:
-            self._oeffnungen_bereich(f)
+            ttk.Label(f, text=tr("dlg.wand.laenge", wert=f"{laenge:.0f}"),
+                      style="Hint.TLabel").grid(row=2, column=0, columnspan=2, sticky=tk.W, pady=2)
+        ttk.Label(f, text=tr("dlg.wand.hinweis"), style="Hint.TLabel", wraplength=380,
+                  justify=tk.LEFT).grid(row=3, column=0, columnspan=2, sticky=tk.W, pady=(8, 2))
         bf = ttk.Frame(f)
-        bf.pack(side=tk.BOTTOM, pady=8)
+        bf.grid(row=4, column=0, columnspan=2, pady=(10, 0))
         ttk.Button(bf, text=tr("dlg.ok"), command=self._ok).pack(side=tk.LEFT, padx=4)
         ttk.Button(bf, text=tr("dlg.abbrechen"), command=self.destroy).pack(side=tk.LEFT, padx=4)
+        self.bind("<Return>", lambda ev: self._ok())
         self.bind("<Escape>", lambda ev: self.destroy())
-        if not vorgabe and self._o:
-            i = auswahl if auswahl is not None and 0 <= auswahl < len(self._o) else 0
-            self.tree.selection_set(str(i))
         self.wait_window(self)
 
-    # -- openings --
-    def _oeffnungen_bereich(self, f):
-        ttk.Label(f, text=tr("dlg.wand.oeffnungen"), style="Title.TLabel"
-                  ).pack(anchor=tk.W, pady=(12, 2))
-        spalten = ("art", "abstand", "breite", "hoehe", "bruestung", "anschlag", "aufschlag")
-        self.tree = ttk.Treeview(f, columns=spalten, show="headings", height=7,
-                                 selectmode="browse")
-        for sp in spalten:
-            self.tree.heading(sp, text=tr("dlg.wand.sp." + sp))
-            self.tree.column(sp, width=70 if sp != "art" else 80, anchor=tk.CENTER)
-        self.tree.pack(fill=tk.X)
-        self.tree.bind("<<TreeviewSelect>>", self._gewaehlt)
-        bz = ttk.Frame(f)
-        bz.pack(fill=tk.X, pady=4)
-        ttk.Button(bz, text=tr("dlg.wand.tuer_neu"),
-                   command=lambda: self._neu("tuer")).pack(side=tk.LEFT, padx=2)
-        ttk.Button(bz, text=tr("dlg.wand.fenster_neu"),
-                   command=lambda: self._neu("fenster")).pack(side=tk.LEFT, padx=2)
-        ttk.Button(bz, text=tr("dlg.wand.entfernen"),
-                   command=self._entfernen).pack(side=tk.LEFT, padx=2)
-        fm = ttk.LabelFrame(f, text=tr("dlg.wand.eigenschaften"), padding=8)
-        fm.pack(fill=tk.X, pady=4)
-        self.vars = {k: tk.StringVar() for k in self.FELDER}
-        for i, k in enumerate(self.FELDER):
-            ttk.Label(fm, text=tr("dlg.wand.sp." + k)).grid(row=i // 2, column=(i % 2) * 2,
-                                                            sticky=tk.W, pady=2, padx=4)
-            ttk.Entry(fm, textvariable=self.vars[k], width=10).grid(
-                row=i // 2, column=(i % 2) * 2 + 1, sticky=tk.W)
-        self.ansch_var = tk.StringVar()
-        self.aufs_var = tk.StringVar()
-        ttk.Label(fm, text=tr("dlg.wand.sp.anschlag")).grid(row=2, column=0, sticky=tk.W, padx=4)
-        self.ansch_cb = ttk.Combobox(fm, textvariable=self.ansch_var, state="readonly", width=16,
-                                     values=[tr("dlg.wand.anschlag.anfang"),
-                                             tr("dlg.wand.anschlag.ende")])
-        self.ansch_cb.grid(row=2, column=1, sticky=tk.W)
-        ttk.Label(fm, text=tr("dlg.wand.sp.aufschlag")).grid(row=2, column=2, sticky=tk.W, padx=4)
-        self.aufs_cb = ttk.Combobox(fm, textvariable=self.aufs_var, state="readonly", width=16,
-                                    values=[tr("dlg.wand.aufschlag.links"),
-                                            tr("dlg.wand.aufschlag.rechts")])
-        self.aufs_cb.grid(row=2, column=3, sticky=tk.W)
-        ttk.Button(fm, text=tr("dlg.wand.uebernehmen"), command=self._uebernehmen
-                   ).grid(row=3, column=0, columnspan=4, pady=(6, 0))
-        ttk.Label(f, text=tr("dlg.wand.hinweis"), style="Hint.TLabel", wraplength=600,
-                  justify=tk.LEFT).pack(anchor=tk.W)
-        self._fuellen()
-
-    def _zeile(self, o):
-        return (tr("dlg.wand.art." + o["art"]), f"{o['abstand']:g}", f"{o['breite']:g}",
-                f"{o['hoehe']:g}", f"{o['bruestung']:g}",
-                tr("dlg.wand.anschlag." + o["anschlag"]), tr("dlg.wand.aufschlag." + o["aufschlag"]))
-
-    def _fuellen(self):
-        self.tree.delete(*self.tree.get_children())
-        for i, o in enumerate(self._o):
-            self.tree.insert("", tk.END, iid=str(i), values=self._zeile(o))
-
-    def _gewaehlt(self, _ev=None):
-        sel = self.tree.selection()
-        if not sel:
-            return
-        o = self._o[int(sel[0])]
-        for k in self.FELDER:
-            self.vars[k].set(f"{o[k]:g}")
-        self.ansch_var.set(tr("dlg.wand.anschlag." + o["anschlag"]))
-        self.aufs_var.set(tr("dlg.wand.aufschlag." + o["aufschlag"]))
-        tuer = o["art"] == "tuer"
-        st = "readonly" if tuer else "disabled"
-        self.ansch_cb.config(state=st)
-        self.aufs_cb.config(state=st)
-
-    def _neu(self, art):
-        from katiecad.model.core import Wand, OEFFNUNG_VORGABE
-        self._uebernehmen(still=True)
-        ende = max([o["abstand"] + o["breite"] for o in self._o] or [0.0])
-        self._o.append(Wand.oeffnung_normieren({"art": art, "abstand": ende + 300.0,
-                                                **OEFFNUNG_VORGABE[art]}))
-        self._fuellen()
-        self.tree.selection_set(str(len(self._o) - 1))
-
-    def _entfernen(self):
-        sel = self.tree.selection()
-        if sel:
-            del self._o[int(sel[0])]
-            self._fuellen()
-
-    def _uebernehmen(self, still=False):
-        sel = self.tree.selection()
-        if not sel:
-            return True
-        o = self._o[int(sel[0])]
-        try:
-            neu = {k: float(self.vars[k].get().replace(",", ".")) for k in self.FELDER}
-        except ValueError:
-            if not still:
-                messagebox.showwarning(tr("dlg.wand.titel"), tr("dlg.wand.zahl"), parent=self)
-            return False
-        if neu["breite"] <= 0 or neu["hoehe"] <= 0 or neu["abstand"] < 0 or neu["bruestung"] < 0:
-            if not still:
-                messagebox.showwarning(tr("dlg.wand.titel"), tr("dlg.wand.zahl"), parent=self)
-            return False
-        o.update(neu)
-        if o["art"] == "tuer":
-            o["anschlag"] = "ende" if self.ansch_var.get() == tr("dlg.wand.anschlag.ende") else "anfang"
-            o["aufschlag"] = ("rechts" if self.aufs_var.get() == tr("dlg.wand.aufschlag.rechts")
-                              else "links")
-        idx = sel[0]
-        self.tree.item(idx, values=self._zeile(o))
-        return True
-
     def _ok(self):
-        try:
-            dicke = float(self.dicke_var.get().replace(",", "."))
-        except ValueError:
-            dicke = 0.0
-        if dicke <= 0:
+        dicke = _zahl(self.dicke_var, 0.0, True)
+        if dicke is None:
             messagebox.showwarning(tr("dlg.wand.titel"), tr("dlg.wand.zahl"), parent=self)
-            return
-        if not self._vorgabe and not self._uebernehmen():
             return
         wahl = self.ausr_var.get()
         ausr = next((a for a in self.AUSR if tr("dlg.wand.ausr." + a) == wahl), "mitte")
-        self.result = {"dicke": dicke, "ausrichtung": ausr, "oeffnungen": self._o}
+        self.result = {"dicke": dicke, "ausrichtung": ausr}
+        self.destroy()
+
+
+class OeffnungDialog(tk.Toplevel):
+    """Attributes of ONE door or window. result = dict of attributes or None."""
+
+    def __init__(self, parent, el):
+        super().__init__(parent)
+        self.result = None
+        self._art = el.art
+        self.title(tr("dlg.wand.titel_" + el.art))
+        self.transient(parent)
+        _modal(self)
+        self.configure(bg=FARBEN["bg_mittel"])
+        f = ttk.Frame(self, padding=14)
+        f.pack(fill=tk.BOTH, expand=True)
+        felder = [("breite", el.breite), ("hoehe", el.hoehe)]
+        if el.art == "fenster":
+            felder.append(("bruestung", el.bruestung))
+        self.vars = {}
+        for r, (k, v) in enumerate(felder):
+            ttk.Label(f, text=tr("dlg.wand.sp." + k) + " (mm):").grid(row=r, column=0,
+                                                                     sticky=tk.W, pady=4)
+            self.vars[k] = tk.StringVar(value=f"{v:g}")
+            e = ttk.Entry(f, textvariable=self.vars[k], width=10)
+            e.grid(row=r, column=1, sticky=tk.W, padx=8)
+            if r == 0:
+                e.focus_set()
+                e.select_range(0, tk.END)
+        r = len(felder)
+        self.spiegeln_var = tk.BooleanVar(value=el.spiegeln)
+        self.umkehren_var = tk.BooleanVar(value=el.umkehren)
+        if el.art == "tuer":
+            ttk.Checkbutton(f, text=tr("dlg.wand.spiegeln"), variable=self.spiegeln_var
+                            ).grid(row=r, column=0, columnspan=2, sticky=tk.W, pady=(8, 2))
+            ttk.Checkbutton(f, text=tr("dlg.wand.umkehren"), variable=self.umkehren_var
+                            ).grid(row=r + 1, column=0, columnspan=2, sticky=tk.W, pady=2)
+            r += 2
+        ttk.Label(f, text=tr("dlg.wand.hinweis_oeffnung"), style="Hint.TLabel", wraplength=360,
+                  justify=tk.LEFT).grid(row=r, column=0, columnspan=2, sticky=tk.W, pady=(8, 2))
+        bf = ttk.Frame(f)
+        bf.grid(row=r + 1, column=0, columnspan=2, pady=(10, 0))
+        ttk.Button(bf, text=tr("dlg.ok"), command=self._ok).pack(side=tk.LEFT, padx=4)
+        ttk.Button(bf, text=tr("dlg.abbrechen"), command=self.destroy).pack(side=tk.LEFT, padx=4)
+        self.bind("<Return>", lambda ev: self._ok())
+        self.bind("<Escape>", lambda ev: self.destroy())
+        self.wait_window(self)
+
+    def _ok(self):
+        res = {}
+        for k, var in self.vars.items():
+            v = _zahl(var, 0.0, strikt=(k != "bruestung"))
+            if v is None:
+                messagebox.showwarning(tr("dlg.wand.titel_" + self._art), tr("dlg.wand.zahl"),
+                                       parent=self)
+                return
+            res[k] = v
+        if self._art == "tuer":
+            res["spiegeln"] = bool(self.spiegeln_var.get())
+            res["umkehren"] = bool(self.umkehren_var.get())
+        self.result = res
         self.destroy()
 
 

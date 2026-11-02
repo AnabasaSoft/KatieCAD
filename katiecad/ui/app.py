@@ -71,7 +71,8 @@ from katiecad.model.core import (
     BEFEHLE, PdfSeite, ist_dunkel,
     E_DEVICES, E_LINES, E_CABLE, E_CLAMPS, E_PIN, ELEKTRO_LAYER, FTEXT_LAYER,
     Layer, Layout, Element, Linie, Kreis, Bogen, Rechteck, Polylinie, Text,
-    Ellipse, Spline, Wand, WAND_LAYER, WAND_LAYER_FARBE,
+    Ellipse, Spline, Wand, Oeffnung, WAND_LAYER, WAND_LAYER_FARBE,
+    wand_verknuepfen, wand_in_linien,
     Bemassung, Viewport, Schraffur, Bild, konturen_aus_elementen, bereich_an_punkt,
     AttributDefinition, Leitung, Verbindungspunkt, Querverweis,
     Verbindung, ElektroMaske, Klemme, Kabel, Koordinatenfeld, ZUSAMMENGESETZT,
@@ -95,7 +96,7 @@ from katiecad.ui.dialogs import (
     _BlockNameDialog, _BlockAuswahlDialog, BlockBrowserDialog,
     BlockSpeichernDialog,
     ProjektNeuDialog, AttributDefinitionDialog, BlockAttributeDialog,
-    MasstextDialog, WandDialog, BauteilkatalogDialog, SchnellauswahlDialog, SuchenErsetzenDialog, QuerverweisDialog, PruefungDialog, EigenschaftenPalette, VerbindungspunkteDialog, ProjektDruckDialog,
+    MasstextDialog, WandDialog, OeffnungDialog, BauteilkatalogDialog, SchnellauswahlDialog, SuchenErsetzenDialog, QuerverweisDialog, PruefungDialog, EigenschaftenPalette, VerbindungspunkteDialog, ProjektDruckDialog,
     VerbindungspunktDialog, VerbindungDialog, FestMaskeDialog,
     KoordinatenfeldDialog,
     TitleBlockDialog, DokumentationDialog, ListenAuswahlDialog, SchriftenDialog, ProjektEigenschaftenDialog,
@@ -3365,7 +3366,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                         ecken[(i + 1) % 4][0], ecken[(i + 1) % 4][1])
                 if isinstance(el, Viewport):
                     zentrum((x1 + x2) / 2, (y1 + y2) / 2)
-            elif isinstance(el, Wand):
+            elif isinstance(el, (Wand, Oeffnung)):
                 for pl, c in el.prims():
                     for (x, y) in pl:
                         ende(x, y)
@@ -3855,6 +3856,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             return el.trifft(x_mm, y_mm, tol)
         if isinstance(el, Wand) and el.punkt_im_koerper(x_mm, y_mm, tol):
             return True                          # the whole wall body counts, not only the faces
+        if isinstance(el, Oeffnung) and el.trifft(x_mm, y_mm, tol):
+            return True
         if isinstance(el, Text):
             return el.punkt_im_rahmen(x_mm, y_mm, tol)
         if isinstance(el, Kreis):
@@ -4317,7 +4320,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                    (el.x2, el.y2), (el.x1, el.y2)]
             for i in range(4):
                 segs.append((pts[i], pts[(i + 1) % 4]))
-        elif isinstance(el, Wand):
+        elif isinstance(el, (Wand, Oeffnung)):
             for pl, c in el.prims():
                 pts = list(pl) + ([pl[0]] if c and len(pl) > 2 else [])
                 for i in range(len(pts) - 1):
@@ -4737,6 +4740,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if isinstance(el, Wand):
             self._wand_bearbeiten(el)
             return
+        if isinstance(el, Oeffnung):
+            self._oeffnung_bearbeiten(el)
+            return
         vorher = self._zustand()
         dlg = PropertiesDialog(self.root, self, el)
         if dlg.result:
@@ -4939,7 +4945,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     def _wand_werkzeug_start(self):
         """Wall tool selected: ask thickness and alignment, create the layer."""
         self._wand_layer_sicherstellen()
-        dlg = WandDialog(self.root, self._wand_dicke, self._wand_ausrichtung, vorgabe=True)
+        dlg = WandDialog(self.root, self._wand_dicke, self._wand_ausrichtung)
         if dlg.result is None:
             self.aktives_werkzeug.set("auswahl")
             self._werkzeug_toolbar()
@@ -4955,29 +4961,55 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 l = self.layers.get(el.layer)
                 if l and not l.sichtbar:
                     continue
-                if self._punkt_auf_element(el, pt[0], pt[1], tol):
+                if el.punkt_im_koerper(pt[0], pt[1], tol):
                     return el
         return None
 
     def _wand_oeffnung_klick(self, pt, art):
+        """Door / window tool: click on a wall puts the object there (it is a normal object
+        afterwards: move, copy, mirror, delete, double click = its attributes)."""
         wand = self._wand_unter_punkt(pt)
         if wand is None:
             self.status.set(tr("msg.wand.keine"))
             return
+        r = wand.naechstes_segment(pt[0], pt[1])
+        i, j = wand._segmente()[r[1]]
+        ax, ay = wand.punkte[i]
+        bx, by = wand.punkte[j]
+        px, py = ax + (bx - ax) * r[2], ay + (by - ay) * r[2]
+        winkel = math.degrees(math.atan2(by - ay, bx - ax)) % 360.0
         self._snapshot()
-        wand.oeffnung_hinzufuegen(art, pt[0], pt[1])
+        daten = self._wand_layer_daten()
+        self._ziel_liste().append(Oeffnung(art, px, py, winkel, dicke=wand.dicke,
+                                           ausrichtung=wand.ausrichtung, **daten))
         self.redraw()
         self.status.set(tr("msg.wand.eingesetzt", art=tr("dlg.wand.art." + art)))
 
-    def _wand_bearbeiten(self, el, nr=None):
-        dlg = WandDialog(self.root, el.dicke, el.ausrichtung, el.oeffnungen,
-                         laenge=el.laenge(), auswahl=nr)
+    def _wand_bearbeiten(self, el):
+        dlg = WandDialog(self.root, el.dicke, el.ausrichtung, laenge=el.laenge())
         if dlg.result is None:
             return
         self._snapshot()
         el.dicke = dlg.result["dicke"]
         el.ausrichtung = dlg.result["ausrichtung"]
-        el.oeffnungen = [Wand.oeffnung_normieren(o) for o in dlg.result["oeffnungen"]]
+        self.redraw()
+
+    def _oeffnung_bearbeiten(self, el):
+        dlg = OeffnungDialog(self.root, el)
+        if dlg.result is None:
+            return
+        self._snapshot()
+        for k, v in dlg.result.items():
+            setattr(el, k, v)
+        self.redraw()
+
+    def _oeffnung_umschalten(self, was):
+        ziele = [e for e in self.auswahl if isinstance(e, Oeffnung)]
+        if not ziele:
+            return
+        self._snapshot()
+        for e in ziele:
+            setattr(e, was, not getattr(e, was))
         self.redraw()
 
     def _polylinie_abschliessen(self, geschlossen=False):
@@ -5019,6 +5051,10 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             except Exception:
                 pass
         self._bild_live = []                # keeps the PhotoImages of this frame
+        try:
+            wand_verknuepfen(self.elemente)
+        except Exception as ex:
+            print(f"[KatieCAD] Waende: {ex}")
         try:
             self._leitungen_automatisch()
             if not self._ist_layout():
@@ -6053,6 +6089,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             if typ == "ellipse":    return Ellipse(**d)
             if typ == "spline":     return Spline(**d)
             if typ == "wand":       return Wand(**d)
+            if typ == "oeffnung":   return Oeffnung(**d)
             if typ == "text":       return Text(**d)
             if typ == "bemassung":  return Bemassung(**d)
             if typ == "viewport":   return Viewport(**d)
@@ -6086,6 +6123,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
 
     def _dxf_dokument(self):
         """Builds an ezdxf document from the current drawing."""
+        wand_verknuepfen(self.elemente)
         doc = ezdxf.new(dxfversion="R2010")
         for name, l in self.layers.items():
             if name not in doc.layers:
@@ -6152,7 +6190,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             elif isinstance(el, Rechteck):
                 pts = [(el.x1, el.y1), (el.x2, el.y1), (el.x2, el.y2), (el.x1, el.y2)]
                 msp.add_lwpolyline(pts, close=True, dxfattribs=attribs)
-            elif isinstance(el, Wand):
+            elif isinstance(el, (Wand, Oeffnung)):
                 for pl, c in el.prims():
                     msp.add_lwpolyline(pl, close=c, dxfattribs=attribs)
             elif isinstance(el, Polylinie):
@@ -6937,7 +6975,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if isinstance(el, Rechteck):
             return [("l", [(el.x1, el.y1), (el.x2, el.y1),
                            (el.x2, el.y2), (el.x1, el.y2)], True)]
-        if isinstance(el, Wand):
+        if isinstance(el, (Wand, Oeffnung)):
             return [("l", pl, c) for pl, c in el.prims()]
         if isinstance(el, Polylinie):
             return [("l", list(el.punkte), el.geschlossen)] if len(el.punkte) >= 2 else []
@@ -8601,6 +8639,15 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                               command=self.block_aufloesen)
             if any(isinstance(e, Bemassung) for e in self.auswahl):
                 m.add_command(label=tr("menu.bearbeiten.masstext"), command=self.masstext_aendern)
+            if any(isinstance(e, Oeffnung) for e in self.auswahl):
+                m.add_command(label=tr("menu.wand.tuer_bearbeiten"),
+                              command=lambda: self._oeffnung_bearbeiten(
+                                  next(e for e in self.auswahl if isinstance(e, Oeffnung))))
+                m.add_command(label=tr("menu.wand.spiegeln"),
+                              command=lambda: self._oeffnung_umschalten("spiegeln"))
+                if any(isinstance(e, Oeffnung) and e.art == "tuer" for e in self.auswahl):
+                    m.add_command(label=tr("menu.wand.umkehren"),
+                                  command=lambda: self._oeffnung_umschalten("umkehren"))
             if any(hasattr(e, "texte_zuruecksetzen") for e in self.auswahl):
                 m.add_command(label=tr("menu.bearbeiten.texte_zuruecksetzen"),
                               command=self.texte_zuruecksetzen)
@@ -10881,7 +10928,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
 
         bx, by = basispunkt
         relativ = []
-        for el in auswahl:
+        for el in wand_in_linien(auswahl):
             k = self._dict_zu_element(el.to_dict())
             if k is None:
                 continue

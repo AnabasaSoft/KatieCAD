@@ -14,7 +14,7 @@ from katiecad.ui import meldung as messagebox
 from katiecad.model.core import (
     ZEICHNUNGSFORMATE, MASSSTAEBE, LINIENTYPEN, PdfSeite,
     Text, Bemassung, Viewport, schrift_fett, schrift_name,
-    Linie, Rechteck, Polylinie, Kreis, Bogen, Wand,
+    Linie, Rechteck, Polylinie, Kreis, Bogen, Wand, Oeffnung, wand_verknuepfen,
     BlockReferenz, Schraffur, Bild, Querverweis, Verbindungspunkt,
     Verbindung, ElektroMaske, Klemme, Koordinatenfeld, Kabel,
     pdf_mehrseitig,
@@ -57,7 +57,7 @@ def _prims(el, skala, einh_faktor, dezimalkomma):
     if isinstance(el, Rechteck):
         return [("l", [(el.x1, el.y1), (el.x2, el.y1),
                        (el.x2, el.y2), (el.x1, el.y2)], True)]
-    if isinstance(el, Wand):
+    if isinstance(el, (Wand, Oeffnung)):
         return [("l", pl, c) for pl, c in el.prims()]
     if isinstance(el, Polylinie):
         return [("l", list(el.punkte), el.geschlossen)] if len(el.punkte) >= 2 else []
@@ -249,6 +249,7 @@ def pdf_seite_erzeugen(app, quelle, farbig, vp_rahmen, layout_index=None,
     de = SPRACHE["aktuell"] == "de"
     einh = app._einh_faktor()
     komma = app.dezimalkomma.get()
+    wand_verknuepfen(app.elemente)
 
     if quelle == "layout":
         if layout_index is None:
