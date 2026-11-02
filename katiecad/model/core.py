@@ -1858,6 +1858,7 @@ def wand_verknuepfen(elemente):
             ux, uy = (bx - ax) / ln, (by - ay) / ln
             ol, orr = _wand_versatz(w.ausrichtung, w.dicke)
             h = o.breite / 2.0
+            s = t * ln                       # position on THIS segment (the tuple's s is cumulative)
             s0 = max(0.0, s - h)
             s1 = min(ln, s + h)
             if n == 0:                       # the nearest wall decides how the opening is drawn
@@ -1941,6 +1942,37 @@ def _wand_t_anschluss(x, y):
     if best is None:
         return None
     return {"modus": "t", "wand": x, "index": best[1], "punkt": best[2]}
+
+
+def wand_schliessen(w):
+    """Closes an open wall: start and end are joined, the first and the last segment run to their
+    common intersection (mitred corner), like at the other corners.
+    -> {"punkte"} or the error key "geschlossen", "zu_kurz", "zu_weit"."""
+    if w.geschlossen:
+        return "geschlossen"
+    p = [tuple(q) for q in w.punkte]
+    if len(p) < 3:
+        return "zu_kurz"
+    limit = w.dicke * 6.0
+    x = _gerade_schnitt(p[0], p[1], p[-2], p[-1]) if len(p) >= 4 else None
+    if x is not None:
+        if (math.hypot(x[0] - p[0][0], x[1] - p[0][1]) > limit
+                or math.hypot(x[0] - p[-1][0], x[1] - p[-1][1]) > limit):
+            return "zu_weit"
+        punkte = [x] + p[1:-1]
+    else:
+        if math.hypot(p[0][0] - p[-1][0], p[0][1] - p[-1][1]) > limit and len(p) >= 4:
+            return "zu_weit"
+        punkte = p
+        if math.hypot(p[0][0] - p[-1][0], p[0][1] - p[-1][1]) < 1e-6:
+            punkte = p[:-1]
+    sauber = [punkte[0]]
+    for q in punkte[1:]:
+        if math.hypot(q[0] - sauber[-1][0], q[1] - sauber[-1][1]) > 1e-6:
+            sauber.append(q)
+    if len(sauber) < 3:
+        return "zu_kurz"
+    return {"punkte": sauber}
 
 
 def wand_verbinden(a, b):

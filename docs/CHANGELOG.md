@@ -7,6 +7,8 @@
 - Neu: **Knopf „Wände verbinden“** in der Werkzeugleiste: erste und zweite Wand anklicken, sie werden sofort zu einer Wand mit Gehrungsecke
 - Neu: Wandschraffur auch als **Vollfläche** (ausgefüllt); Standard-Linienabstand 180 mm
 - Fix: Schraffur lief durch Türen und Fenster; Türen und Fenster auf der Wandlinie (Lage „links/rechts“) wurden teils nicht in der Wand erkannt und schnitten keine Lücke
+- Neu: **Wand schließen:** dieselbe Wand beim Verbinden zweimal anklicken (oder Rechtsklick › Wand schließen) verbindet Anfang und Ende mit sauberer Gehrungsecke
+- Fix: **Türen und Fenster schnitten ihre Lücke und Schraffur nur im ersten Segment einer Wand richtig** (in allen weiteren Segmenten, z. B. bei Räumen aus einer Wand, lief die Schraffur durch die Tür)
 - Neu: **Wände bilden automatisch eine gemeinsame Kontur:** wo sich Wände berühren, kreuzen oder überlappen, entfallen Wandflächen, Endkappen und Schraffur im Inneren der anderen Wand (T-Anschlüsse, Kreuzungen, Überstände)
 - Neu: **T-Anschluss mit „Wände verbinden“:** liegt das Ende einer Wand vor oder in der Mitte einer anderen, wird es auf deren Mittellinie verlängert bzw. gekürzt
 - Fix: **Ortho** gilt jetzt auch beim Ziehen von Wand- und Polylinienpunkten an den Griffen (relativ zum Nachbarpunkt)

@@ -185,4 +185,19 @@ _W1 = core.Wand([(0, 0), (3000, 0)]); _W2 = core.Wand([(3100, 100), (3100, 3000)
 check(core.wand_verbinden(_W1, _W2).get("modus") != "t", "Ecke bleibt Ecke (Verschmelzen)")
 check("_abzug" not in json.loads(json.dumps(_A.to_dict())), "Laufzeitdaten werden nicht gespeichert")
 check("msg.wand.angeschlossen" in I.TEXTE["de"] and "msg.wand.angeschlossen" in I.TEXTE["en"], "Meldung angeschlossen")
+# Tuer in einem spaeteren Wandsegment (Raum): Luecke/Schraffur an der richtigen Stelle
+_R = core.Wand([(0, 0), (5000, 0), (5000, 4000), (0, 4000)], geschlossen=True, dicke=240, schraffur="schraeg")
+_tt = core.Oeffnung("tuer", 5000, 2000)
+core.wand_verknuepfen([_R, _tt])
+check(len(_R._luecken) == 1 and _R._luecken[0][0] == 1 and 0.0 < _R._luecken[0][1] < _R._luecken[0][2] <= 1.0,
+      "Tuer im 2. Segment: Luecke liegt im Segment (nicht kumulativ)")
+check(not [1 for pl in _R._schraffurlinien() for p in pl if abs(p[0] - 5000) < 125 and 1500 < p[1] < 2500
+           and abs(p[0] - 5000) < 125 and (1550 < sum(q[1] for q in pl) / 2 < 2450)],
+      "Tuer im 2. Segment: keine Schraffur in der Tuer")
+# Wand schliessen (Anfang und Ende derselben Wand)
+_O = core.Wand([(70, 410), (600, 440), (610, 20), (-10, 0), (-20, 500)], dicke=24)
+_s = core.wand_schliessen(_O)
+check(isinstance(_s, dict) and len(_s["punkte"]) == 4, "Wand schliessen: Schnittpunkt ersetzt Anfang und Ende")
+check(core.wand_schliessen(_R) == "geschlossen", "Wand schliessen: schon geschlossen")
+check("menu.wand.schliessen" in I.TEXTE["de"] and "menu.wand.schliessen" in I.TEXTE["en"], "Text Wand schliessen")
 print(f"test_wand - {ok} Checks bestanden")

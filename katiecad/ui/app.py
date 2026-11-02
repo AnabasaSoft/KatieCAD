@@ -72,7 +72,7 @@ from katiecad.model.core import (
     E_DEVICES, E_LINES, E_CABLE, E_CLAMPS, E_PIN, ELEKTRO_LAYER, FTEXT_LAYER,
     Layer, Layout, Element, Linie, Kreis, Bogen, Rechteck, Polylinie, Text,
     Ellipse, Spline, Wand, Oeffnung, WAND_LAYER, WAND_LAYER_FARBE,
-    wand_verknuepfen, wand_in_linien, wand_verbinden,
+    wand_verknuepfen, wand_in_linien, wand_verbinden, wand_schliessen,
     Bemassung, Viewport, Schraffur, Bild, konturen_aus_elementen, bereich_an_punkt,
     AttributDefinition, Leitung, Verbindungspunkt, Querverweis,
     Verbindung, ElektroMaske, Klemme, Kabel, Koordinatenfeld, ZUSAMMENGESETZT,
@@ -5022,6 +5022,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if erste is not None and erste not in self._ctx_liste():
             erste = self._wand_verb_erste = None
         w = self._wand_unter_punkt(pt, ausser=erste)
+        if w is None and erste is not None and self._wand_unter_punkt(pt) is erste:
+            w = erste                                       # same wall again: close it (start meets end)
         if w is None:
             self.status.set(tr("msg.wand.keine" if erste is None else "msg.wand.verb_andere"))
             return
@@ -5031,7 +5033,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self.redraw()
             self.status.set(tr("msg.wand.verb_zweite"))
             return
-        self.auswahl = [self._wand_verb_erste, w]
+        self.auswahl = [self._wand_verb_erste] if w is self._wand_verb_erste else [self._wand_verb_erste, w]
         self._wand_verb_erste = None
         self.wand_verbinden_befehl()
         if self.auswahl and len(self.auswahl) == 1:         # success: back to the selection tool
@@ -5053,6 +5055,19 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     def wand_verbinden_befehl(self):
         """Joins two selected walls into ONE wall (corner or straight, mitred)."""
         waende = [e for e in self.auswahl if isinstance(e, Wand)]
+        if len(waende) == 1:                               # one wall: join its start and end
+            w = waende[0]
+            r = wand_schliessen(w)
+            if isinstance(r, str):
+                self.status.set(tr("msg.wand.verb_" + r))
+                return
+            self._snapshot()
+            w.punkte = [tuple(q) for q in r["punkte"]]
+            w.geschlossen = True
+            self.auswahl = [w]
+            self.redraw()
+            self.status.set(tr("msg.wand.geschlossen"))
+            return
         if len(waende) != 2:
             self.status.set(tr("msg.wand.zwei"))
             return
@@ -8763,6 +8778,10 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             if any(isinstance(e, Wand) for e in self.auswahl):
                 m.add_command(label=tr("menu.wand.schraffur"),
                               command=self.wand_schraffur_umschalten)
+                if (sum(isinstance(e, Wand) for e in self.auswahl) == 1
+                        and not next(e for e in self.auswahl if isinstance(e, Wand)).geschlossen):
+                    m.add_command(label=tr("menu.wand.schliessen"),
+                                  command=self.wand_verbinden_befehl)
                 if sum(isinstance(e, Wand) for e in self.auswahl) == 2:
                     m.add_command(label=tr("menu.wand.verbinden"),
                                   command=self.wand_verbinden_befehl)
