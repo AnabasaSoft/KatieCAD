@@ -153,7 +153,7 @@ check(AU.vorhandene_werte(els, "layer") == ["A", "B"], "QS: Werte")
 # ---- Kettenbemassung
 a = make(); a.view = {"zoom": 10.0, "ox": 0, "oy": 0}
 a.bem_art = NS(get=lambda: "kette"); a._pts = []; a._kette = None
-a.bem_hoehe = NS(get=lambda: 2.5); a.bem_pfeil = NS(get=lambda: 2.5); a.bem_dez = NS(get=lambda: 1)
+a.bem_hoehe = NS(get=lambda: 2.5); a.bem_pfeil = NS(get=lambda: 2.5); a.bem_dez = NS(get=lambda: 1); a.bem_endstueck = NS(get=lambda: "pfeil")
 a.layers["Bemaßung"] = core.Layer("Bemaßung")
 a._kette_klick((0, 0)); a._kette_klick((10, 0)); a._kette_klick((5, 8))
 check(len(a.elemente) == 1 and a.elemente[0].richtung == "horizontal", "Kette: erste Bemassung")
@@ -163,7 +163,7 @@ check(near(a.elemente[1].x1, 10) and near(a.elemente[1].x2, 25) and near(a.eleme
 check(near(a.elemente[2].wert(), 5), "Kette: Wert")
 a = make(); a.view = {"zoom": 10.0, "ox": 0, "oy": 0}
 a.bem_art = NS(get=lambda: "kette"); a._pts = []; a._kette = None
-a.bem_hoehe = NS(get=lambda: 2.5); a.bem_pfeil = NS(get=lambda: 2.5); a.bem_dez = NS(get=lambda: 1)
+a.bem_hoehe = NS(get=lambda: 2.5); a.bem_pfeil = NS(get=lambda: 2.5); a.bem_dez = NS(get=lambda: 1); a.bem_endstueck = NS(get=lambda: "pfeil")
 a.layers["Bemaßung"] = core.Layer("Bemaßung")
 a._kette_klick((0, 0)); a._kette_klick((10, 10)); a._kette_klick((2, 8)); a._kette_klick((20, 20))
 check(len(a.elemente) == 2 and a.elemente[1].richtung == "ausgerichtet", "Kette: schraeg")
@@ -267,7 +267,7 @@ check(near(core.Bemassung(0, 0, 10, 0, mx=5, my=5).wert(), 10), "Linear unveraen
 # Winkel aus zwei Linien
 a = make(); a.view = {"zoom": 1.0, "ox": 0, "oy": 0}
 a.bem_art = NS(get=lambda: "winkel_linien"); a._pts = []; a._wk_l1 = None
-a.bem_hoehe = NS(get=lambda: 2.5); a.bem_pfeil = NS(get=lambda: 2.5); a.bem_dez = NS(get=lambda: 1)
+a.bem_hoehe = NS(get=lambda: 2.5); a.bem_pfeil = NS(get=lambda: 2.5); a.bem_dez = NS(get=lambda: 1); a.bem_endstueck = NS(get=lambda: "pfeil")
 a.layers["Bemaßung"] = core.Layer("Bemaßung")
 a.elemente = [core.Linie(0, 0, 10, 0), core.Linie(0, 0, 0, 10)]
 a._element_unter_maus = lambda x, y, t: a.elemente[0] if y < 1 else a.elemente[1]

@@ -141,7 +141,7 @@ check(not any(isinstance(e, core.Verbindung) for e in a.elemente), "App: Loesche
 check(any(isinstance(e, core.Verbindungspunkt) for e in a.elemente), "Pin a bleibt")
 
 # ---- Place mask/terminal + NUM
-A.FestMaskeDialog = lambda root, titel, felder, werte=None, rolle=None, hinweis="", spiegel=None, ausgeblendet=None: NS(result={"werte": dict(werte or {}, **({"NUM": werte.get("NUM", "1")} if "NUM" in felder else {})), "rolle": rolle, "spiegel": spiegel})
+A.FestMaskeDialog = lambda root, titel, felder, werte=None, rolle=None, hinweis="", spiegel=None, ausgeblendet=None, einpolig=None, zusatz=(): NS(result={"werte": dict(werte or {}, **({"NUM": werte.get("NUM", "1")} if "NUM" in felder else {})), "rolle": rolle, "spiegel": spiegel})
 a = make(); a._kl_werte = {"NUM": "1"}
 a._klemme_platzieren(0, 0); a._klemme_platzieren(0, 10)
 ns = [e.werte["NUM"] for e in a.elemente if isinstance(e, core.Klemme)]
@@ -232,7 +232,7 @@ import tempfile as _tf
 _bd = _tf.mkdtemp()
 A.BlockSpeichernDialog = lambda *x, **k: NS(result={"name": "Schuetz", "ordner": _bd})
 A.lade_konfiguration = lambda: {}; A.speichere_konfiguration = lambda d: None
-A.FestMaskeDialog = lambda root, titel, felder, werte=None, rolle=None, hinweis="", spiegel=None, ausgeblendet=None: NS(result={"werte": {}, "rolle": "hilfs", "spiegel": None})
+A.FestMaskeDialog = lambda root, titel, felder, werte=None, rolle=None, hinweis="", spiegel=None, ausgeblendet=None, einpolig=None, zusatz=(): NS(result={"werte": {}, "rolle": "hilfs", "spiegel": None})
 A.vp_tags_eindeutig = lambda r: None
 a.block_bibliothek = core.BlockBibliothek(a._dict_zu_element)
 a._naechster_block_name = lambda: "B1"; a._snap_marker_loeschen = MagicMock(); a._attribute_abfragen = lambda r: None

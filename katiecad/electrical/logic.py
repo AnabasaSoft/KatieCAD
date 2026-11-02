@@ -13,7 +13,7 @@ from copy import deepcopy
 
 from katiecad.model.core import (Querverweis, Verbindungspunkt, BlockReferenz,
                            Verbindung, Klemme, ElektroMaske, Leitung,
-                           Koordinatenfeld, Text, Kabel, E_LINES)
+                           Koordinatenfeld, Text, Kabel, E_LINES, ist_einpolig)
 from katiecad.common.i18n import tr
 
 
@@ -282,6 +282,16 @@ def geraete(elemente, blatt_nr):
     out = []
     felder = felder_aus_elementen(elemente)
     for el in elemente:
+        if ist_einpolig(el):
+            # single-pole second representation: no device for lists / references
+            if hasattr(el, "refs"):
+                el.refs = []
+            if hasattr(el, "kontakte"):
+                el.kontakte = []
+            m = el.geraet_maske() if isinstance(el, BlockReferenz) else None
+            if m is not None:
+                m.kontakte = []
+            continue
         if isinstance(el, ElektroMaske):
             w = el.werte
             out.append({"obj": el, "per": w.get(REF_FELD, "").strip(),
@@ -319,6 +329,12 @@ def geraete_aus_blattdaten(daten):
 
     for d in daten.get("elemente", []):
         if not isinstance(d, dict):
+            continue
+        if d.get("einpolig") and d.get("typ") in ("maske", "kabel"):
+            continue
+        if d.get("typ") == "block" and any(
+                isinstance(k, dict) and k.get("typ") == "maske" and k.get("einpolig")
+                for k in d.get("elemente", []) or []):
             continue
         if d.get("typ") == "maske":
             w = d.get("werte", {}) or {}

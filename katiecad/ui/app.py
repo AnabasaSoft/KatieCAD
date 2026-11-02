@@ -9885,6 +9885,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             m = ref.geraet_maske()
             if m is not None and dlg.rolle:
                 m.rolle = dlg.rolle
+            if m is not None and dlg.einpolig is not None:
+                m.einpolig = dlg.einpolig
             if m is not None and dlg.spiegel:
                 if m.spiegel != dlg.spiegel:
                     ref.sp_dx = ref.sp_dy = 0.0
@@ -9913,6 +9915,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         m = ref.geraet_maske()
         if m is not None and dlg.rolle:
             m.rolle = dlg.rolle
+        if m is not None and dlg.einpolig is not None:
+            m.einpolig = dlg.einpolig
         if m is not None and dlg.spiegel:
             if m.spiegel != dlg.spiegel:
                 ref.sp_dx = ref.sp_dy = 0.0
@@ -10208,9 +10212,11 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                               rolle=self._mk_rolle,
                               hinweis=tr("dlg.maske.hinweis"),
                               spiegel=getattr(self, "_mk_spiegel", "liste"),
-                              ausgeblendet=getattr(self, "_mk_aus", set()))
+                              ausgeblendet=getattr(self, "_mk_aus", set()),
+                              einpolig=getattr(self, "_mk_einpolig", False))
         if dlg.result is None:
             return
+        self._mk_einpolig = bool(dlg.result.get("einpolig"))
         self._mk_werte = dict(dlg.result["werte"])
         self._mk_rolle = dlg.result["rolle"]
         self._mk_spiegel = dlg.result["spiegel"] or "liste"
@@ -10221,7 +10227,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self._ziel_liste().append(
             ElektroMaske(x, y, dlg.result["werte"], rolle=dlg.result["rolle"],
                          spiegel=getattr(self, "_mk_spiegel", "liste"),
-                         ausgeblendet=getattr(self, "_mk_aus", set()), **daten))
+                         ausgeblendet=getattr(self, "_mk_aus", set()),
+                         einpolig=self._mk_einpolig, **daten))
         self.redraw()
         self.status.set(tr("msg.maske.gesetzt"))
 
@@ -10230,15 +10237,18 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         dlg = FestMaskeDialog(self.root, tr("dlg.klemme.titel"),
                               Klemme.FELDER, vor,
                               hinweis=tr("dlg.klemme.hinweis"),
-                              ausgeblendet=getattr(self, "_kl_aus", set()))
+                              ausgeblendet=getattr(self, "_kl_aus", set()),
+                              einpolig=getattr(self, "_kl_einpolig", False))
         if dlg.result is None:
             return
         w = dict(dlg.result["werte"])
+        self._kl_einpolig = bool(dlg.result.get("einpolig"))
         self._kl_aus = set(dlg.result.get("ausgeblendet", ()))
         self._snapshot()
         daten = self._layer_daten_fuer(E_CLAMPS)
         daten["staerke"] = None
-        kl = Klemme(x, y, w, ausgeblendet=getattr(self, "_kl_aus", set()), **daten)
+        kl = Klemme(x, y, w, ausgeblendet=getattr(self, "_kl_aus", set()),
+                    einpolig=self._kl_einpolig, **daten)
         self._ziel_liste().append(kl)
         n_ein = self._einrasten([kl])
         w["NUM"] = naechste_bezeichnung(w.get("NUM", ""))
@@ -10273,14 +10283,17 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self.status.set(tr("msg.kabel.ende"))
             return
         dlg = FestMaskeDialog(self.root, tr("dlg.kabel.titel"), Kabel.FELDER,
-                              self._kb_werte, hinweis=tr("dlg.kabel.hinweis"))
+                              self._kb_werte, hinweis=tr("dlg.kabel.hinweis"),
+                              einpolig=False)
         if dlg.result is None:
             return
         w = dict(dlg.result["werte"])
         self._snapshot()
         daten = self._layer_daten_fuer(E_CABLE)
         daten["staerke"] = None
-        self._ziel_liste().append(Kabel(p1[0], p1[1], w, laenge=x - p1[0], **daten))
+        self._ziel_liste().append(Kabel(p1[0], p1[1], w, laenge=x - p1[0],
+                                        einpolig=bool(dlg.result.get("einpolig")),
+                                        **daten))
         w["CAB"] = naechste_bezeichnung(w.get("CAB", ""))
         self._kb_werte = w
         self._kabel_p1 = None
@@ -10294,11 +10307,12 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                   for i, (k, n) in enumerate(kreuz)]
         dlg = FestMaskeDialog(self.root, tr("dlg.kabel.titel"), Kabel.FELDER,
                               el.werte, hinweis=tr("dlg.kabel.hinweis"),
-                              zusatz=zusatz)
+                              zusatz=zusatz, einpolig=el.einpolig)
         if dlg.result is None:
             return
         self._snapshot()
         el.setze_werte(dlg.result["werte"])
+        el.einpolig = bool(dlg.result.get("einpolig"))
         neu = dict(el.adern)
         for (k, _t, _n) in zusatz:
             text = dlg.result["zusatz"].get(k, "").strip()
@@ -10330,13 +10344,15 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             spiegel=el.spiegel if ist_maske else None,
             hinweis=tr("dlg.maske.hinweis") if ist_maske
             else tr("dlg.klemme.hinweis"),
-            ausgeblendet=el.ausgeblendet)
+            ausgeblendet=el.ausgeblendet, einpolig=el.einpolig)
         if dlg.result is None:
             return
         self._snapshot()
         el.setze_werte(dlg.result["werte"])
         el.ausgeblendet = {t for t in dlg.result.get("ausgeblendet", el.ausgeblendet)
                            if t in el.FELDER}
+        if dlg.result.get("einpolig") is not None:
+            el.einpolig = dlg.result["einpolig"]
         if ist_maske and dlg.result["rolle"]:
             el.rolle = dlg.result["rolle"]
             neu = dlg.result["spiegel"] or "liste"

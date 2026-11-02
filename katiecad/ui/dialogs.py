@@ -1938,8 +1938,10 @@ class BlockAttributeDialog(tk.Toplevel):
         # Device (block with electrical mask): main or auxiliary device
         self.rolle = None
         self.spiegel = None
+        self.einpolig = None
         self._v_spiegel = None
         self._v_rolle = None
+        self._v_einpolig = None
         maske = ref.geraet_maske() if hasattr(ref, "geraet_maske") else None
         if maske is not None:
             self._v_rolle = tk.StringVar(value=maske.rolle)
@@ -1960,6 +1962,11 @@ class BlockAttributeDialog(tk.Toplevel):
             for w in ElektroMaske.SPIEGEL:
                 ttk.Radiobutton(sf, text=tr("dlg.maske.spiegel." + w), value=w,
                                 variable=self._v_spiegel).pack(anchor=tk.W)
+            zeile += 1
+            self._v_einpolig = tk.BooleanVar(value=bool(getattr(maske, "einpolig", False)))
+            ttk.Checkbutton(f, text=tr("dlg.maske.einpolig"),
+                            variable=self._v_einpolig).grid(
+                row=zeile, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
             zeile += 1
 
         bf = ttk.Frame(aussen)                        # buttons stay visible
@@ -1984,6 +1991,8 @@ class BlockAttributeDialog(tk.Toplevel):
             self.rolle = self._v_rolle.get()
         if self._v_spiegel is not None:
             self.spiegel = self._v_spiegel.get()
+        if self._v_einpolig is not None:
+            self.einpolig = bool(self._v_einpolig.get())
         self.result = {t: v.get() for t, v in self._vars.items()}
         # Tags whose text is to be hidden in this instance
         self.ausgeblendet = {t for t, v in self._sicht.items() if not v.get()}
@@ -3320,7 +3329,7 @@ class FestMaskeDialog(tk.Toplevel):
     result: {'werte': {...}, 'rolle': ...} or None."""
 
     def __init__(self, parent, titel, felder, werte=None, rolle=None, hinweis="",
-                 zusatz=(), spiegel=None, ausgeblendet=None):
+                 zusatz=(), spiegel=None, ausgeblendet=None, einpolig=None):
         super().__init__(parent)
         self.result = None
         werte = werte or {}
@@ -3367,6 +3376,13 @@ class FestMaskeDialog(tk.Toplevel):
                 ttk.Radiobutton(sf, text=tr("dlg.maske.spiegel." + w), value=w,
                                 variable=self.v_spiegel).pack(anchor=tk.W)
             row += 1
+        self.v_einpolig = tk.BooleanVar(value=bool(einpolig))
+        self._einpolig = einpolig is not None
+        if self._einpolig:
+            ttk.Checkbutton(f, text=tr("dlg.maske.einpolig"),
+                            variable=self.v_einpolig).grid(
+                row=row, column=0, columnspan=3, sticky=tk.W, pady=(6, 0))
+            row += 1
         self._zvars = {}
         for key, label, wert in zusatz:       # further input fields (e.g. cores)
             ttk.Label(f, text=label).grid(row=row, column=0, sticky=tk.W, pady=2, padx=(0, 10))
@@ -3395,6 +3411,7 @@ class FestMaskeDialog(tk.Toplevel):
         self.result = {"werte": {t: v.get().strip() for t, v in self._vars.items()},
                        "rolle": self.v_rolle.get() if self._rolle else None,
                        "spiegel": self.v_spiegel.get() if self._spiegel else None,
+                       "einpolig": bool(self.v_einpolig.get()) if self._einpolig else None,
                        "zusatz": {k: v.get().strip() for k, v in self._zvars.items()},
                        "ausgeblendet": {t for t, v in self._sicht.items() if not v.get()}}
         self.destroy()

@@ -284,6 +284,18 @@ Beispiel eine Spule `K1` auf Blatt 3 und ihre Kontakte `K1` auf den Blättern 5 
 Dabei darf jedes Gerät nur **eine** Maske enthalten. Bei Geräten mit mehreren
 Kontakten legst du jeden Kontakt als eigenes Hilfsgerät an.
 
+**Einpolige Darstellung (Zweitdarstellung):** Zeichnest du dasselbe Gerät einmal
+mehrpolig (Stromlaufplan) und einmal einpolig (z. B. Übersicht, Verteilerplan), setze
+im Dialog des einpoligen Symbols (Gerätemaske, Block, Klemme oder Kabel) das Häkchen
+**Einpolige Darstellung**. Ein so markiertes Symbol wird **nirgends mitgezählt**: nicht
+in Geräteliste, Stückliste, Klemmenplan, Kabel- und SPS-Liste, nicht im Netz
+(Verbindungs- und Anschlusslisten), nicht in Querverweisen/REF, nicht in der
+Projektprüfung („Hauptgerät doppelt“) und nicht in der automatischen Nummerierung.
+Gib dem einpoligen Symbol dieselbe Kennzeichnung (IND) wie dem mehrpoligen, damit man
+sie zuordnen kann. Wichtig: Ein Gerät, das **nur** einpolig gezeichnet ist, taucht in
+keiner Liste auf – zähle es mit einem mehrpoligen Symbol oder lass das Häkchen weg.
+Ändert sich die Kennzeichnung im mehrpoligen Symbol, ändere sie im einpoligen von Hand mit.
+
 ### Leitungen
 
 - **Automatisch:** Liegen zwei Anschlusspunkte (Pins, Verbindungen, Klemmen,

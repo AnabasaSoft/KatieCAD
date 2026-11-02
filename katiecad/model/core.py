@@ -3941,9 +3941,12 @@ class _FestMaske(Element):
     ZEILEN = ()            # (tag, dx, dy, height, anchor)
 
     def __init__(self, typ, x, y, werte=None, ausgeblendet=None,
-                 platzhalter=True, versatz=None, **kw):
+                 platzhalter=True, versatz=None, einpolig=False, **kw):
         super().__init__(typ, **kw)
         self.x, self.y = float(x), float(y)
+        # Single-pole second representation of a device drawn elsewhere (multi-pole):
+        # never counted in lists, parts list, net or checks (see ist_einpolig)
+        self.einpolig = bool(einpolig)
         # Free text positions: {TAG: [dx, dy]} relative to the automatic position
         self.versatz = {str(k): [float(v[0]), float(v[1])]
                         for k, v in (versatz or {}).items()}
@@ -3962,6 +3965,8 @@ class _FestMaske(Element):
         d.pop("kontakte", None)         # computed, never saved
         d.pop("sym_bbox", None)
         d.pop("_anker", None)
+        if not self.einpolig:
+            d.pop("einpolig", None)
         d["werte"] = dict(self.werte)
         d["ausgeblendet"] = sorted(self.ausgeblendet)
         d["versatz"] = {k: list(v) for k, v in self.versatz.items()}
@@ -5360,6 +5365,17 @@ def pyramide(cx, cy, z0, hoehe, ecken=4, breite=20.0, tiefe=20.0, **kw):
 
 def kugel(cx, cy, cz, r, **kw):
     return Koerper3D("kugel", [], 0.0, 0.0, kugel=(cx, cy, cz, r), bez="Kugel", **kw)
+
+
+def ist_einpolig(el):
+    """True if `el` (device mask, terminal, cable or block with an electrical
+    mask) is marked as single-pole second representation. Such elements are
+    ignored by all evaluations (device/parts/terminal lists, net, checks,
+    cross references) so that nothing is counted twice."""
+    if isinstance(el, BlockReferenz):
+        m = el.geraet_maske()
+        return bool(m is not None and getattr(m, "einpolig", False))
+    return bool(getattr(el, "einpolig", False))
 
 
 ZUSAMMENGESETZT = (BlockReferenz, Querverweis, Verbindung, ElektroMaske, Klemme,

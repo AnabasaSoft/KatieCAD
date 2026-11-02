@@ -9,7 +9,7 @@ Per channel (pin with tag VPn) the attributes VPn_SYM (symbol name) and
 VPn_KOM (comment) can be filled in; the pin text is the channel address.
 """
 
-from katiecad.model.core import BlockReferenz, Verbindungspunkt, ort_text
+from katiecad.model.core import BlockReferenz, Verbindungspunkt, ort_text, ist_einpolig
 from katiecad.electrical.logic import felder_aus_elementen, feld_an, _pos
 from katiecad.reports.netz import natuerlich, ziele_texte, wert_gesetzt
 
@@ -42,7 +42,7 @@ def sps_liste(netz, blaetter, nummer, einbauorte=None):
         felder = felder_aus_elementen(el)
         eo = str((einbauorte or {}).get(idx, "") or "").strip()
         for b in el:
-            if not isinstance(b, BlockReferenz):
+            if not isinstance(b, BlockReferenz) or ist_einpolig(b):
                 continue
             art = sps_art(b)
             if art not in ARTEN:

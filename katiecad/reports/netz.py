@@ -24,7 +24,7 @@ import math
 from collections import defaultdict
 
 from katiecad.model.core import (BlockReferenz, Verbindungspunkt, Verbindung,
-                                 Klemme, Querverweis, Leitung, Kabel)
+                                 Klemme, Querverweis, Leitung, Kabel, ist_einpolig)
 
 SUCH_TOL = 0.4          # mm: wire end -> connection point
 BERUEHRUNG = 0.1        # mm: coinciding connection points
@@ -171,6 +171,8 @@ class Netz:
         start = len(self.knoten)
         start_kl = len(self.klemmen)
         for el in elemente:
+            if ist_einpolig(el):
+                continue                 # single-pole second representation
             if isinstance(el, BlockReferenz):
                 kz = (wert_gesetzt(el.attribute.get("IND"), "IND")
                       or str(el.block_name))
@@ -199,7 +201,7 @@ class Netz:
         self._kabel_adern(blatt, elemente)
 
     def _kabel_adern(self, blatt, elemente):
-        kabel = [k for k in elemente if isinstance(k, Kabel)]
+        kabel = [k for k in elemente if isinstance(k, Kabel) and not ist_einpolig(k)]
         if not kabel:
             return
         senkrecht = [l for l in elemente if isinstance(l, Leitung)

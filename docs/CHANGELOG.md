@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.3
+- Neu: **Einpolige Darstellung als Zweitdarstellung:** Häkchen „Einpolige Darstellung“ im Dialog von Gerätemaske, Block, Klemme und Kabel. So markierte Symbole zählen in keiner Liste (Geräte-, Stück-, Klemmen-, Kabel-, SPS-Liste), nicht im Netz, nicht in Querverweisen, nicht in der Projektprüfung und nicht in der Auto-Nummerierung – dasselbe Gerät ein- und mehrpolig zu zeichnen wirft nichts doppelt aus
 - Neu: **Wände, Türen und Fenster für Gebäudegrundrisse** (Einfügen › Wand / Tür in Wand / Fenster in Wand): Wandstärke und Lage der Linie einstellbar, eigene Ebene „Wände“, Gehrungsecken, Objektfang auf allen Wandkanten; Türen und Fenster sind eigene, normale Objekte (per Klick in die Wand gesetzt, mit Griffen verschieb- und in der Breite änderbar, Doppelklick = nur deren Maße, Scharnierseite und Öffnungsrichtung), eine Tür schneidet die Lücke automatisch in die Wand
 - Neu: **Wände verbinden** (zwei Wände anklicken › Einfügen › Wände verbinden): beide werden zu einer Wand mit Gehrungsecke, Mittellinien bis zum Schnittpunkt verlängert oder gekürzt
 - Neu: **Wände schraffieren** direkt im Wanddialog (Doppelklick) oder per Rechtsklick › Wand schraffieren: schräg oder Kreuz, Linienabstand einstellbar, Türöffnungen bleiben frei

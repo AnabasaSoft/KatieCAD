@@ -9,7 +9,7 @@ pruefe(blaetter) -> list of Befund. `blaetter` is a list of
 from collections import defaultdict
 
 from katiecad.model.core import (Querverweis, BlockReferenz, ElektroMaske,
-                                 Kabel, Klemme, Leitung)
+                                 Kabel, Klemme, Leitung, ist_einpolig)
 from katiecad.common.i18n import tr
 from katiecad.electrical.logic import REF_FELD, _pos, _nahe
 from katiecad.reports.netz import leisten_ermitteln
@@ -57,8 +57,11 @@ def pruefe(blaetter, einbauorte=None):
     qvs = defaultdict(list)
     for b in blaetter:
         _i, _n, elemente = b
-        leisten = leisten_ermitteln([e for e in elemente if isinstance(e, Klemme)])
+        leisten = leisten_ermitteln([e for e in elemente if isinstance(e, Klemme)
+                                      and not ist_einpolig(e)])
         for el in elemente:
+            if ist_einpolig(el):
+                continue                 # second representation: no duplicate
             g = _geraet_daten(el)
             if g is not None:
                 per, rolle = g

@@ -282,6 +282,18 @@ get, for example, a coil `K1` on sheet 3 and its contacts `K1` on sheets 5 and 6
 Each device may contain only **one** mask. For devices with several contacts, create
 each contact as its own auxiliary device.
 
+**Single-pole representation (second drawing):** If you draw the same device once
+multi-pole (circuit diagram) and once single-pole (e.g. overview, distribution board
+plan), tick **Single-pole representation** in the dialog of the single-pole symbol
+(device mask, block, terminal or cable). A symbol marked this way is **not counted
+anywhere**: not in the device list, parts list, terminal plan, cable or PLC list, not in
+the net (connection and terminal lists), not in cross references/REF, not in the
+project check ("main device duplicate") and not in automatic numbering. Give the
+single-pole symbol the same identifier (IND) as the multi-pole one so they can be
+matched. Note: a device drawn **only** single-pole appears in no list - count it with a
+multi-pole symbol or leave the tick off. If you change the identifier of the multi-pole
+symbol, change it in the single-pole one by hand.
+
 ### Wires
 
 - **Automatic:** if two connection points (pins, junctions, terminals, cross

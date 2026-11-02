@@ -30,6 +30,8 @@ def geraete_felder(el):
     """-> (holder, key, rolle, x, y) of the IND field of a device or None."""
     t = _typ(el)
     if t == "maske":
+        if _get(el, "einpolig", False):
+            return None                  # single-pole copy keeps the identifier
         werte = _get(el, "werte")
         if isinstance(werte, dict) and "IND" in werte:
             return (werte, "IND", _get(el, "rolle", "haupt"),
@@ -40,9 +42,13 @@ def geraete_felder(el):
             if isinstance(el, dict):
                 maske = next((k for k in el.get("elemente", []) or []
                               if isinstance(k, dict) and k.get("typ") == "maske"), None)
+                if maske and maske.get("einpolig"):
+                    return None
                 rolle = maske.get("rolle", "haupt") if maske else None
             else:
                 m = el.geraet_maske() if hasattr(el, "geraet_maske") else None
+                if m is not None and getattr(m, "einpolig", False):
+                    return None
                 rolle = m.rolle if m is not None else None
             if rolle is not None:
                 return (attr, "IND", rolle, _get(el, "x", 0.0), _get(el, "y", 0.0))
