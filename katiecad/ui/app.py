@@ -2071,7 +2071,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self._wand_werkzeug_start()
         elif wz in ("tuer", "fenster"):
             self._wand_layer_sicherstellen()
-            self.status.set(tr("msg.wand." + wz))
+            self._oeffnung_vorgabe_dialog(wz)
         elif wz == "wandverb":
             self._wand_verb_erste = None
             self.status.set(tr("msg.wand.verb_erste"))
@@ -5034,6 +5034,18 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                         beste = (d, el)
         return beste[1] if beste else None
 
+    def _oeffnung_vorgabe_dialog(self, art):
+        """Door / window tool selected: ask the properties BEFORE placing (model, size, hinge ...)."""
+        vg = self.__dict__.setdefault("_oeffnung_vorgaben", {})
+        probe = Oeffnung(art, 0, 0, 0, **vg.get(art, {}))
+        dlg = OeffnungDialog(self.root, probe, vorgabe=True)
+        if dlg.result is None:
+            self.aktives_werkzeug.set("auswahl")
+            self._werkzeug_toolbar()
+            return
+        vg[art] = dict(dlg.result)
+        self.status.set(tr("msg.wand." + art))
+
     def _wand_oeffnung_klick(self, pt, art):
         """Door / window tool: click on a wall puts the object there (it is a normal object
         afterwards: move, copy, mirror, delete, double click = its attributes)."""
@@ -5049,8 +5061,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         winkel = math.degrees(math.atan2(by - ay, bx - ax)) % 360.0
         self._snapshot()
         daten = self._wand_layer_daten()
+        vorgabe = dict(self.__dict__.get("_oeffnung_vorgaben", {}).get(art, {}))
         self._ziel_liste().append(Oeffnung(art, px, py, winkel, dicke=wand.dicke,
-                                           ausrichtung=wand.ausrichtung, **daten))
+                                           ausrichtung=wand.ausrichtung, **vorgabe, **daten))
         self.redraw()
         self.status.set(tr("msg.wand.eingesetzt", art=tr("dlg.wand.art." + art)))
 

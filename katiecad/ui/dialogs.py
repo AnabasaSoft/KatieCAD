@@ -25,7 +25,7 @@ from katiecad.model.core import (
     schrift_fett, schrift_name, schrift_setzen,
     Layer, Text, Linie, Kreis, Bogen, Rechteck, Polylinie,
     Bemassung, Viewport, Verbindung, ElektroMaske,
-    parse_massstab, massstab_text,
+    parse_massstab, massstab_text, TUER_MODELLE, TUER_MODELL_VORGABE,
 )
 from katiecad.model.project import name_pruefen
 from katiecad.ui.widgets import farb_swatch, ScrollFrame
@@ -335,40 +335,56 @@ class WandDialog(tk.Toplevel):
 
 
 class OeffnungDialog(tk.Toplevel):
-    """Attributes of ONE door or window. result = dict of attributes or None."""
+    """Attributes of ONE door or window. result = dict of attributes or None.
+    vorgabe=True: the same dialog BEFORE placing (defaults for the following objects)."""
 
-    def __init__(self, parent, el):
+    def __init__(self, parent, el, vorgabe=False):
         super().__init__(parent)
         self.result = None
         self._art = el.art
-        self.title(tr("dlg.wand.titel_" + el.art))
+        self._modell_alt = getattr(el, "modell", "einfach")
+        self.title(tr("dlg.wand.titel_" + ("vorgabe_" if vorgabe else "") + el.art))
         self.transient(parent)
         _modal(self)
         self.configure(bg=FARBEN["bg_mittel"])
         f = ttk.Frame(self, padding=14)
         f.pack(fill=tk.BOTH, expand=True)
+        r = 0
+        self.modell_var = tk.StringVar(value=tr("dlg.wand.modell." + self._modell_alt))
+        if el.art == "tuer":
+            ttk.Label(f, text=tr("dlg.wand.modell")).grid(row=r, column=0, sticky=tk.W, pady=4)
+            cb = ttk.Combobox(f, textvariable=self.modell_var, state="readonly", width=34,
+                              values=[tr("dlg.wand.modell." + m) for m in TUER_MODELLE])
+            cb.grid(row=r, column=1, sticky=tk.W, padx=8)
+            cb.bind("<<ComboboxSelected>>", lambda ev: self._modell_gewechselt())
+            r += 1
         felder = [("breite", el.breite), ("hoehe", el.hoehe)]
         if el.art == "fenster":
             felder.append(("bruestung", el.bruestung))
         self.vars = {}
-        for r, (k, v) in enumerate(felder):
+        for k, v in felder:
             ttk.Label(f, text=tr("dlg.wand.sp." + k) + " (mm):").grid(row=r, column=0,
                                                                      sticky=tk.W, pady=4)
             self.vars[k] = tk.StringVar(value=f"{v:g}")
             e = ttk.Entry(f, textvariable=self.vars[k], width=10)
             e.grid(row=r, column=1, sticky=tk.W, padx=8)
-            if r == 0:
+            if k == "breite":
                 e.focus_set()
                 e.select_range(0, tk.END)
-        r = len(felder)
+            r += 1
         self.spiegeln_var = tk.BooleanVar(value=el.spiegeln)
         self.umkehren_var = tk.BooleanVar(value=el.umkehren)
+        self.anteil_var = tk.StringVar(value=f"{getattr(el, 'anteil', 0.67) * 100:g}")
         if el.art == "tuer":
-            ttk.Checkbutton(f, text=tr("dlg.wand.spiegeln"), variable=self.spiegeln_var
-                            ).grid(row=r, column=0, columnspan=2, sticky=tk.W, pady=(8, 2))
-            ttk.Checkbutton(f, text=tr("dlg.wand.umkehren"), variable=self.umkehren_var
-                            ).grid(row=r + 1, column=0, columnspan=2, sticky=tk.W, pady=2)
-            r += 2
+            ttk.Label(f, text=tr("dlg.wand.anteil")).grid(row=r, column=0, sticky=tk.W, pady=4)
+            self.anteil_e = ttk.Entry(f, textvariable=self.anteil_var, width=10)
+            self.anteil_e.grid(row=r, column=1, sticky=tk.W, padx=8)
+            self.spiegeln_cb = ttk.Checkbutton(f, variable=self.spiegeln_var)
+            self.spiegeln_cb.grid(row=r + 1, column=0, columnspan=2, sticky=tk.W, pady=(8, 2))
+            self.umkehren_cb = ttk.Checkbutton(f, text=tr("dlg.wand.umkehren"), variable=self.umkehren_var)
+            self.umkehren_cb.grid(row=r + 2, column=0, columnspan=2, sticky=tk.W, pady=2)
+            r += 3
+            self._modell_gewechselt(erste=True)
         ttk.Label(f, text=tr("dlg.wand.hinweis_oeffnung"), style="Hint.TLabel", wraplength=360,
                   justify=tk.LEFT).grid(row=r, column=0, columnspan=2, sticky=tk.W, pady=(8, 2))
         bf = ttk.Frame(f)
@@ -378,6 +394,26 @@ class OeffnungDialog(tk.Toplevel):
         self.bind("<Return>", lambda ev: self._ok())
         self.bind("<Escape>", lambda ev: self.destroy())
         self.wait_window(self)
+
+    def _modell(self):
+        w = self.modell_var.get()
+        return next((m for m in TUER_MODELLE if tr("dlg.wand.modell." + m) == w), "einfach")
+
+    def _modell_gewechselt(self, erste=False):
+        m = self._modell()
+        if not erste and m != self._modell_alt:          # suggest the usual size of the new model
+            alt_b, alt_h = TUER_MODELL_VORGABE[self._modell_alt]
+            neu_b, neu_h = TUER_MODELL_VORGABE[m]
+            if self.vars["breite"].get().strip() == f"{alt_b:g}":
+                self.vars["breite"].set(f"{neu_b:g}")
+            if self.vars["hoehe"].get().strip() == f"{alt_h:g}":
+                self.vars["hoehe"].set(f"{neu_h:g}")
+        self._modell_alt = m
+        self.anteil_e.configure(state="normal" if m == "doppel_ungleich" else "disabled")
+        self.spiegeln_cb.configure(
+            text=tr("dlg.wand.spiegeln_gross" if m == "doppel_ungleich" else "dlg.wand.spiegeln"),
+            state="disabled" if m in ("doppel", "rolltor") else "normal")
+        self.umkehren_cb.configure(state="disabled" if m == "rolltor" else "normal")
 
     def _ok(self):
         res = {}
@@ -391,6 +427,12 @@ class OeffnungDialog(tk.Toplevel):
         if self._art == "tuer":
             res["spiegeln"] = bool(self.spiegeln_var.get())
             res["umkehren"] = bool(self.umkehren_var.get())
+            res["modell"] = self._modell()
+            pr = _zahl(self.anteil_var, 50.0)
+            if pr is None or pr > 90.0:
+                messagebox.showwarning(tr("dlg.wand.titel_tuer"), tr("dlg.wand.zahl"), parent=self)
+                return
+            res["anteil"] = pr / 100.0
         self.result = res
         self.destroy()
 

@@ -230,4 +230,27 @@ check(abs(_L.flaeche_m2() - 14.0) < 1e-9 and len(_L.griffe()) == 7, "Raum mit 6 
 _F = core.Raum([(0, 0), (1000, 0), (1000, 1000)], schriftart=core.schrift_setzen("Courier", True))
 check(_F.prims()[0][6] == "Courier|b" and _F.text_obj().schriftart == "Courier|b", "Raum: Schriftart (fett) in Anzeige und Trefferflaeche")
 check(core.Raum(**{k: v for k, v in core.Raum([(0, 0), (1, 0), (1, 1)]).to_dict().items() if k != "typ"}).schriftart == "Arial", "Raum: Standardschrift Arial")
+# Tuermodelle
+_ein = core.Oeffnung("tuer", 0, 0, 0, breite=1500)
+_dp = core.Oeffnung("tuer", 0, 0, 0, breite=1500, modell="doppel")
+_du = core.Oeffnung("tuer", 0, 0, 0, breite=1500, modell="doppel_ungleich", anteil=0.67)
+_rt = core.Oeffnung("tuer", 0, 0, 0, breite=3000, modell="rolltor")
+check(len(_ein.prims()) == 4 and len(_dp.prims()) == 6 and len(_du.prims()) == 6, "Tuermodelle: Einfach 1, Doppel 2 Fluegel")
+_hoch = lambda o: max(p[1] for pl, _c in o.prims() for p in pl)
+check(abs(_hoch(_ein) - (120 + 1500)) < 1e-6 and abs(_hoch(_dp) - (120 + 750)) < 1e-6
+      and abs(_hoch(_du) - (120 + 1005)) < 1e-6, "Tuermodelle: Flügelbreiten (gleich / ungleich)")
+_ds = core.Oeffnung("tuer", 0, 0, 0, breite=1500, modell="doppel_ungleich", spiegeln=True)
+_spitze = lambda o: [p[0] for pl, _c in o.prims() for p in pl if abs(p[1] - (120 + 1005)) < 1e-6 and len(pl) == 2]
+check(_spitze(_du) == [-750.0] and _spitze(_ds) == [750.0], "Tuermodelle: spiegeln tauscht die Seite des grossen Fluegels")
+check(all(abs(p[1]) <= 120 + 1e-6 for pl, _c in _rt.prims() for p in pl) and len(_rt.prims()) > 6, "Rolltor: gestrichelt in der Wand, kein Tuerblatt")
+check(core.Oeffnung("fenster", modell="rolltor").modell == "einfach", "Fenster hat kein Tuermodell")
+_dd = json.loads(json.dumps(_du.to_dict()))
+check(_dd["modell"] == "doppel_ungleich" and core.Oeffnung(**{k: v for k, v in _dd.items() if k != "typ"}).anteil == 0.67, "Tuermodell speichern / laden")
+_wd = core.Wand([(0, 0), (6000, 0)], dicke=240, schraffur="schraeg")
+core.wand_verknuepfen([_wd, core.Oeffnung("tuer", 3000, 0, breite=3000, modell="rolltor")])
+check(len(_wd._luecken) == 1 and abs((_wd._luecken[0][2] - _wd._luecken[0][1]) - 0.5) < 1e-6, "Rolltor schneidet die Wandluecke")
+for k in ("dlg.wand.modell", "dlg.wand.modell.einfach", "dlg.wand.modell.doppel", "dlg.wand.modell.doppel_ungleich",
+          "dlg.wand.modell.rolltor", "dlg.wand.anteil", "dlg.wand.spiegeln_gross", "dlg.wand.titel_vorgabe_tuer",
+          "dlg.wand.titel_vorgabe_fenster"):
+    check(k in I.TEXTE["de"] and k in I.TEXTE["en"], k)
 print(f"test_wand - {ok} Checks bestanden")

@@ -1363,6 +1363,13 @@ WAND_LAYER = "Wände"
 WAND_LAYER_FARBE = ("#c29bff", 0.5)          # colour, line weight of the automatic wall layer
 WAND_AUSRICHTUNGEN = ("mitte", "links", "rechts")
 WAND_SCHRAFFUREN = ("", "schraeg", "kreuz", "voll")   # none / diagonal / cross-hatch / solid fill
+TUER_MODELLE = ("einfach", "doppel", "doppel_ungleich", "rolltor")   # single / double / double uneven / roller shutter
+TUER_MODELL_VORGABE = {                       # width, height per door model (mm)
+    "einfach": (1010.0, 2010.0),
+    "doppel": (1760.0, 2010.0),
+    "doppel_ungleich": (1500.0, 2010.0),
+    "rolltor": (3000.0, 2500.0),
+}
 OEFFNUNG_VORGABE = {                          # plan symbols: door / window
     "tuer": {"breite": 1010.0, "hoehe": 2010.0, "bruestung": 0.0},
     "fenster": {"breite": 1250.0, "hoehe": 1250.0, "bruestung": 900.0},
@@ -1727,7 +1734,7 @@ class Oeffnung(Element):
 
     def __init__(self, art="tuer", x=0.0, y=0.0, winkel=0.0, breite=None, hoehe=None,
                  bruestung=None, dicke=240.0, spiegeln=False, umkehren=False,
-                 ausrichtung="mitte", **kw):
+                 ausrichtung="mitte", modell="einfach", anteil=0.67, **kw):
         for k in ("_geo", "geo"):
             kw.pop(k, None)
         super().__init__("oeffnung", **kw)
@@ -1742,6 +1749,10 @@ class Oeffnung(Element):
         self.ausrichtung = ausrichtung if ausrichtung in WAND_AUSRICHTUNGEN else "mitte"
         self.spiegeln = bool(spiegeln)
         self.umkehren = bool(umkehren)
+        # door model: single, double (equal leaves), double uneven (the larger leaf = `anteil` of
+        # the width, on the hinge side; `spiegeln` puts it on the other side), roller shutter
+        self.modell = modell if (modell in TUER_MODELLE and self.art == "tuer") else "einfach"
+        self.anteil = min(0.9, max(0.5, float(anteil)))
         self._geo = None              # runtime only: position/direction taken from the wall
 
     def to_dict(self):
@@ -1772,21 +1783,42 @@ class Oeffnung(Element):
                 q = -orr + (orr + ol) * f
                 out.append(([pt(-h, q), pt(h, q)], False))
             return out
+        if self.modell == "rolltor":                             # roller shutter: jambs + dashed line
+            q = (ol - orr) / 2.0
+            s, ende = -h, h
+            strich, luecke = 120.0, 80.0
+            while s < ende - 1e-6:
+                e2 = min(s + strich, ende)
+                out.append(([pt(s, q), pt(e2, q)], False))
+                s = e2 + luecke
+            return out
         seite = -1.0 if self.umkehren else 1.0                   # swing side (+ = left of the wall direction)
         q0 = ol if seite > 0 else -orr
-        sh = h if self.spiegeln else -h                          # hinge position along the wall
-        andere = -sh
-        spitze = (sh, q0 + seite * self.breite)
-        out.append(([pt(sh, q0), pt(*spitze)], False))           # door leaf
-        # arc: centre = hinge, radius = width, from the leaf tip to the closed position
-        w0 = math.atan2(seite, 0.0)                              # direction of the leaf in (u, n) frame
-        w1 = 0.0 if andere > sh else math.pi
-        da = (w1 - w0 + math.pi) % (2 * math.pi) - math.pi
-        bogen = []
-        for q in range(17):
-            w = w0 + da * q / 16.0
-            bogen.append(pt(sh + self.breite * math.cos(w), q0 + self.breite * math.sin(w)))
-        out.append((bogen, False))
+
+        def fluegel(sh, richtung, b):
+            """Leaf of width b hinged at sh (richtung +1/-1: towards the other jamb) + its arc."""
+            spitze = (sh, q0 + seite * b)
+            teile = [([pt(sh, q0), pt(*spitze)], False)]
+            w0 = math.atan2(seite, 0.0)
+            w1 = 0.0 if richtung > 0 else math.pi
+            da = (w1 - w0 + math.pi) % (2 * math.pi) - math.pi
+            bogen = [pt(sh + b * math.cos(w0 + da * q / 16.0), q0 + b * math.sin(w0 + da * q / 16.0))
+                     for q in range(17)]
+            teile.append((bogen, False))
+            return teile
+
+        if self.modell == "doppel":
+            out += fluegel(-h, 1, self.breite / 2.0) + fluegel(h, -1, self.breite / 2.0)
+        elif self.modell == "doppel_ungleich":
+            gross = self.breite * self.anteil
+            klein = self.breite - gross
+            if self.spiegeln:
+                out += fluegel(h, -1, gross) + fluegel(-h, 1, klein)
+            else:
+                out += fluegel(-h, 1, gross) + fluegel(h, -1, klein)
+        else:
+            sh = h if self.spiegeln else -h                      # hinge position along the wall
+            out += fluegel(sh, -1 if sh > 0 else 1, self.breite)
         return out
 
     def bbox(self):
