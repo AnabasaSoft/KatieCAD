@@ -275,10 +275,10 @@ class WandDialog(tk.Toplevel):
     """Wall: thickness, position of the drawn line and hatch.
     result = {"dicke", "ausrichtung", "schraffur", "schraffur_abstand"} or None."""
     AUSR = ("mitte", "links", "rechts")
-    SCHR = ("", "schraeg", "kreuz")
+    SCHR = ("", "schraeg", "kreuz", "voll")
 
     def __init__(self, parent, dicke=240.0, ausrichtung="mitte", laenge=None,
-                 schraffur="", schraffur_abstand=60.0):
+                 schraffur="", schraffur_abstand=180.0):
         super().__init__(parent)
         self.result = None
         self.title(tr("dlg.wand.titel" if laenge is not None else "dlg.wand.titel_vorgabe"))

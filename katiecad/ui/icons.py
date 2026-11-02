@@ -89,6 +89,10 @@ def _zeichne(name, d, c, f):
         L([(28, 30), (72, 30)], 5); L([(28, 54), (72, 54)], 5)
         L([(28, 38), (72, 38)], 3); L([(28, 46), (72, 46)], 3)
         L([(28, 30), (28, 54)], 5); L([(72, 30), (72, 54)], 5)
+    elif name == "wandverb":
+        L([(14, 14), (14, 60), (62, 60)], 6); L([(34, 14), (34, 40), (62, 40)], 6)
+        L([(14, 14), (34, 14)], 5); L([(62, 40), (62, 60)], 5)
+        L([(70, 50), (90, 50)], 4); L([(82, 42), (90, 50), (82, 58)], 4)
     elif name == "brechen":
         L([(8, 50), (36, 50)]); L([(64, 50), (92, 50)])
         L([(30, 36), (42, 64)], 5); L([(58, 36), (70, 64)], 5)
@@ -286,7 +290,7 @@ def _zeichne(name, d, c, f):
 
 
 NAMEN = ("auswahl", "linie", "polylinie", "kreis", "bogen", "ellipse", "spline",
-         "rechteck", "text", "bemassung", "stutzen", "brechen", "wand", "tuer", "fenster",
+         "rechteck", "text", "bemassung", "stutzen", "brechen", "wand", "tuer", "fenster", "wandverb",
          "vpunkt", "verbindung", "querverweis", "maske", "klemme", "kabel",
          "koordinatenfeld", "suchen", "zoom_plus", "zoom_minus",
          "zoom_grenzen", "reset", "ftext", "laenge", "manip",

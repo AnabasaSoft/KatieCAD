@@ -4,6 +4,9 @@
 - New: **walls, doors and windows for building floor plans** (Insert > Wall / Door in wall / Window in wall): adjustable wall thickness and position of the line, own layer "Wände", mitred corners, object snap on all wall edges; doors and windows are objects of their own (placed into the wall by click, movable and resizable by grips, double click = only their size, hinge side and opening direction), a door cuts the gap into the wall automatically
 - New: **join walls** (click two walls > Insert > Join walls): both become one wall with a mitred corner, centre lines extended or trimmed to their intersection
 - New: **hatch walls** directly in the wall dialog (double click) or via right click > Hatch wall: diagonal or cross, adjustable line spacing, door openings stay free
+- New: **"Join walls" button** in the toolbar: click the first and second wall, they are merged at once into one wall with a mitred corner
+- New: wall hatch also as **solid fill**; default line spacing 180 mm
+- Fix: hatch ran through doors and windows; doors and windows on the wall line (position "left/right") were sometimes not recognised in the wall and cut no gap
 - Change: the layer "Wände" has the colour #c29bff by default
 - Change: program version 1.1.3 (About window, installer)
 - New: **Hide cabinet doors per viewport** (right-click the viewport > 3D view in this viewport > Hide cabinet doors): door, handle and lock disappear in this viewport only; the same cabinet thus appears in one layout with and without door, without drawing it twice. Saved with the project, applies to object snap and PDF

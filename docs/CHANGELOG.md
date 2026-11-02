@@ -4,6 +4,9 @@
 - Neu: **Wände, Türen und Fenster für Gebäudegrundrisse** (Einfügen › Wand / Tür in Wand / Fenster in Wand): Wandstärke und Lage der Linie einstellbar, eigene Ebene „Wände“, Gehrungsecken, Objektfang auf allen Wandkanten; Türen und Fenster sind eigene, normale Objekte (per Klick in die Wand gesetzt, mit Griffen verschieb- und in der Breite änderbar, Doppelklick = nur deren Maße, Scharnierseite und Öffnungsrichtung), eine Tür schneidet die Lücke automatisch in die Wand
 - Neu: **Wände verbinden** (zwei Wände anklicken › Einfügen › Wände verbinden): beide werden zu einer Wand mit Gehrungsecke, Mittellinien bis zum Schnittpunkt verlängert oder gekürzt
 - Neu: **Wände schraffieren** direkt im Wanddialog (Doppelklick) oder per Rechtsklick › Wand schraffieren: schräg oder Kreuz, Linienabstand einstellbar, Türöffnungen bleiben frei
+- Neu: **Knopf „Wände verbinden“** in der Werkzeugleiste: erste und zweite Wand anklicken, sie werden sofort zu einer Wand mit Gehrungsecke
+- Neu: Wandschraffur auch als **Vollfläche** (ausgefüllt); Standard-Linienabstand 180 mm
+- Fix: Schraffur lief durch Türen und Fenster; Türen und Fenster auf der Wandlinie (Lage „links/rechts“) wurden teils nicht in der Wand erkannt und schnitten keine Lücke
 - Änderung: die Ebene „Wände“ hat standardmäßig die Farbe #c29bff
 - Änderung: Programmversion 1.1.3 (Info-Fenster, Installer)
 - Neu: **Schranktüren pro Viewport ausblenden** (Rechtsklick auf den Viewport › 3D-Ansicht in diesem Viewport › Schranktüren ausblenden): Tür, Türgriff und Schloss verschwinden nur in diesem Viewport; derselbe Schrank erscheint so in einem Layout mit und ohne Tür, ohne ihn doppelt zu zeichnen. Gespeichert mit dem Projekt, wirkt auf Objektfang und PDF

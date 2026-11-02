@@ -125,14 +125,37 @@ check(core.wand_verbinden(a, Wand([(9000, 5000), (9000, 6000)])) == "zu_weit", "
 m = Wand(r["punkte"], dicke=240)
 check(not any(len(pl) == 2 and abs(pl[0][0] - 3100) < 1e-6 and abs(pl[1][0] - 3100) < 1e-6
               and abs(pl[0][1]) < 1e-6 for pl, _c in m.prims()), "keine Endkappe mehr in der Ecke")
+# ---- fill, windows, tolerance, defaults ----
+vw = Wand([(0, 0), (3000, 0)], dicke=240, schraffur="voll")
+check(len(vw.flaechen()) == 1 and len(vw.prims()) == len(vw.prims(schraffur=False)), "Vollflaeche: Flaeche, keine Linien")
+check(Wand([(0, 0), (3000, 0)]).schraffur_abstand == 180, "Standard-Linienabstand 180")
+fw = Wand([(0, 0), (3000, 0)], dicke=240, schraffur="voll")
+fo = Oeffnung("fenster", 1500, 0, 0.0, breite=1000); wand_verknuepfen([fw, fo])
+check(len(fw.flaechen()) == 2 and fw._luecken == [] and len(fw._fenster) == 1, "Fenster: Flaeche ausgespart, Kanten laufen durch")
+hf = Wand([(0, 0), (3000, 0)], dicke=240, schraffur="schraeg", schraffur_abstand=40)
+wand_verknuepfen([hf, fo])
+for pl, _c in hf.prims()[len(hf.prims(schraffur=False)):]:
+    assert not (max(p[0] for p in pl) > 1000 + 1e-6 and min(p[0] for p in pl) < 2000 - 1e-6), "Schraffur im Fenster"
+check(True, "keine Schraffur im Fenster")
+for ausr in ("mitte", "links", "rechts"):
+    for ang in (0, 30, 77):
+        a_ = math.radians(ang)
+        wx = Wand([(100, 200), (100 + 3000 * math.cos(a_), 200 + 3000 * math.sin(a_))], dicke=240, ausrichtung=ausr)
+        px, py = 100 + 1700 * math.cos(a_), 200 + 1700 * math.sin(a_)      # on the line
+        od = Oeffnung("tuer", px, py, 0.0); wand_verknuepfen([wx, od])
+        assert len(wx._luecken) == 1, f"Tuer auf der Linie ({ausr}, {ang})"
+check(True, "Tuer auf der Wandlinie wird in jeder Lage gefunden")
+d = json.loads(json.dumps(vw.to_dict()))
+check("_fenster" not in d and d["schraffur"] == "voll", "Vollflaeche gespeichert, keine Laufzeitdaten")
+check(core.WAND_SCHRAFFUREN[-1] == "voll", "Schraffurart voll vorhanden")
 for k in ("tb.wz.wand", "tb.wz.tuer", "tb.wz.fenster", "dlg.wand.titel", "dlg.wand.titel_tuer", "dlg.wand.spiegeln",
           "dlg.wand.umkehren", "menu.wand.spiegeln", "menu.wand.umkehren", "menu.wand.tuer_bearbeiten",
           "msg.wand.klick", "menu.einfuegen.wand", "menu.wand.verbinden", "menu.wand.schraffur", "dlg.wand.schraffur",
-          "msg.wand.zwei", "msg.wand.verb_zu_weit"):
+          "msg.wand.zwei", "msg.wand.verb_zu_weit", "tb.wz.wandverb", "dlg.wand.schr.voll", "msg.wand.verb_erste"):
     check(k in I.TEXTE["de"] and k in I.TEXTE["en"], k)
 check(core.BEFEHLE.get("WAND") == "tool:wand", "Befehl WAND")
 check(core.BEFEHLE.get("WANDVERBINDEN") == "wand:verbinden", "Befehl WANDVERBINDEN")
 check(core.WAND_LAYER_FARBE[0] == "#c29bff", "Wandebene in der Standardfarbe")
 from katiecad.ui import icons as IC
-check(all(n in IC.NAMEN for n in ("wand", "tuer", "fenster")), "Icons registriert")
+check(all(n in IC.NAMEN for n in ("wand", "tuer", "fenster", "wandverb")), "Icons registriert")
 print(f"test_wand - {ok} Checks bestanden")

@@ -1559,7 +1559,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         ttk.Label(tb, text=tr("tb.werkzeug"), style="Title.TLabel").pack(side=tk.LEFT, padx=(0, 4))
         for key in ("auswahl", "linie", "polylinie", "kreis", "bogen",
                     "ellipse", "spline", "rechteck", "text", "bemassung",
-                    "stutzen", "brechen", "wand", "tuer", "fenster"):
+                    "stutzen", "brechen", "wand", "tuer", "fenster", "wandverb"):
             self._werkzeug_knopf(tb, key, FARBEN["cyan"])
         self._befehl_knopf(tb, "laenge", FARBEN["cyan"], self.laenge_start)
         self._befehl_knopf(tb, "suchen", FARBEN["cyan"], self.suchen_ersetzen)
@@ -2070,6 +2070,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         elif wz in ("tuer", "fenster"):
             self._wand_layer_sicherstellen()
             self.status.set(tr("msg.wand." + wz))
+        elif wz == "wandverb":
+            self._wand_verb_erste = None
+            self.status.set(tr("msg.wand.verb_erste"))
 
     def _bem_art_starten(self, art):
         """Activates the dimension tool with radius/diameter preselected."""
@@ -4181,6 +4184,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self._ellipse_klick(pt)
         elif werkzeug in ("tuer", "fenster"):
             self._wand_oeffnung_klick(pt, werkzeug)
+        elif werkzeug == "wandverb":
+            self._wand_verbinden_klick(pt)
         elif werkzeug in ("polylinie", "spline", "wand"):
             if lp is None or not self.aktuelle_polylinie:
                 self.aktuelle_polylinie = [pt]
@@ -4924,7 +4929,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
     _wand_dicke = 240.0
     _wand_ausrichtung = "mitte"
     _wand_schraffur = ""
-    _wand_schraffur_abstand = 60.0
+    _wand_schraffur_abstand = 180.0
+    _wand_verb_erste = None
 
     def _wand_layer_sicherstellen(self):
         """Own layer for walls (created on first use)."""
@@ -5005,6 +5011,27 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         el.schraffur_abstand = dlg.result["schraffur_abstand"]
         self.redraw()
 
+    def _wand_verbinden_klick(self, pt):
+        """Join tool: click wall 1, then wall 2 - they are merged at once."""
+        w = self._wand_unter_punkt(pt)
+        if w is None:
+            self.status.set(tr("msg.wand.keine"))
+            return
+        if self._wand_verb_erste is None or self._wand_verb_erste not in self._ctx_liste():
+            self._wand_verb_erste = w
+            self.auswahl = [w]
+            self.redraw()
+            self.status.set(tr("msg.wand.verb_zweite"))
+            return
+        if w is self._wand_verb_erste:
+            return
+        self.auswahl = [self._wand_verb_erste, w]
+        self._wand_verb_erste = None
+        self.wand_verbinden_befehl()
+        if self.auswahl and len(self.auswahl) == 1:         # success: back to the selection tool
+            self.aktives_werkzeug.set("auswahl")
+            self._werkzeug_toolbar()
+
     def wand_schraffur_umschalten(self):
         """Hatch on / off for the selected walls (no hatch command needed)."""
         ziele = [e for e in self.auswahl if isinstance(e, Wand)]
@@ -5033,7 +5060,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         umgedreht = ([a] if r["rev_a"] else []) + ([b] if r["rev_b"] else [])
         self._snapshot()
         for o in self.elemente:
-            if isinstance(o, Oeffnung) and any(w.punkt_im_koerper(o.x, o.y) for w in umgedreht):
+            if isinstance(o, Oeffnung) and any(w.punkt_im_koerper(o.x, o.y, 1.0) for w in umgedreht):
                 o.spiegeln = not o.spiegeln
                 o.umkehren = not o.umkehren
         a.punkte = [tuple(p) for p in r["punkte"]]
@@ -6245,6 +6272,11 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 pts = [(el.x1, el.y1), (el.x2, el.y1), (el.x2, el.y2), (el.x1, el.y2)]
                 msp.add_lwpolyline(pts, close=True, dxfattribs=attribs)
             elif isinstance(el, (Wand, Oeffnung)):
+                if isinstance(el, Wand):
+                    for q in el.flaechen():
+                        h = msp.add_hatch(dxfattribs=attribs)
+                        h.set_solid_fill()
+                        h.paths.add_polyline_path(list(q), is_closed=True)
                 for pl, c in el.prims():
                     msp.add_lwpolyline(pl, close=c, dxfattribs=attribs)
             elif isinstance(el, Polylinie):
@@ -7030,7 +7062,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             return [("l", [(el.x1, el.y1), (el.x2, el.y1),
                            (el.x2, el.y2), (el.x1, el.y2)], True)]
         if isinstance(el, (Wand, Oeffnung)):
-            return [("l", pl, c) for pl, c in el.prims()]
+            fl = [("f", q) for q in el.flaechen()] if isinstance(el, Wand) else []
+            return fl + [("l", pl, c) for pl, c in el.prims()]
         if isinstance(el, Polylinie):
             return [("l", list(el.punkte), el.geschlossen)] if len(el.punkte) >= 2 else []
         if isinstance(el, Kreis):
@@ -7100,6 +7133,13 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                     if dash:
                         kw["dash"] = dash
                     c.create_line(*flat, **kw)
+            elif k == "f":
+                pts = [tf(x, y) for (x, y) in p[1]]
+                if (max(q[0] for q in pts) < xmin or min(q[0] for q in pts) > xmax
+                        or max(q[1] for q in pts) < ymin or min(q[1] for q in pts) > ymax):
+                    continue
+                flat = [v for q in pts for v in q]
+                c.create_polygon(*flat, fill=farbe, outline=farbe, width=1, tags=tags)
             elif k == "p":
                 _, x, y, ang, L = p
                 ux, uy = math.cos(ang), math.sin(ang)

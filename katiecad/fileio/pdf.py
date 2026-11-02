@@ -58,7 +58,8 @@ def _prims(el, skala, einh_faktor, dezimalkomma):
         return [("l", [(el.x1, el.y1), (el.x2, el.y1),
                        (el.x2, el.y2), (el.x1, el.y2)], True)]
     if isinstance(el, (Wand, Oeffnung)):
-        return [("l", pl, c) for pl, c in el.prims()]
+        fl = [("f", q) for q in el.flaechen()] if isinstance(el, Wand) else []
+        return fl + [("l", pl, c) for pl, c in el.prims()]
     if isinstance(el, Polylinie):
         return [("l", list(el.punkte), el.geschlossen)] if len(el.punkte) >= 2 else []
     if isinstance(el, Kreis):
@@ -155,6 +156,8 @@ def _pdf_element_roh(seite, el, tf, zs, farbig, layers, einh_faktor, dezimalkomm
         k = p[0]
         if k == "l":
             seite.linie([tf(x, y) for (x, y) in p[1]], w, farbe, dash, p[2])
+        elif k == "f":
+            seite.flaeche([tf(x, y) for (x, y) in p[1]], farbe)
         elif k == "p":
             _, x, y, ang, L = p
             ux, uy = math.cos(ang), math.sin(ang)

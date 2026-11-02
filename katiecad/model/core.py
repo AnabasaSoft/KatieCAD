@@ -1361,7 +1361,7 @@ class Spline(Polylinie):
 WAND_LAYER = "Wände"
 WAND_LAYER_FARBE = ("#c29bff", 0.5)          # colour, line weight of the automatic wall layer
 WAND_AUSRICHTUNGEN = ("mitte", "links", "rechts")
-WAND_SCHRAFFUREN = ("", "schraeg", "kreuz")      # none / diagonal / cross-hatch
+WAND_SCHRAFFUREN = ("", "schraeg", "kreuz", "voll")   # none / diagonal / cross-hatch / solid fill
 OEFFNUNG_VORGABE = {                          # plan symbols: door / window
     "tuer": {"breite": 1010.0, "hoehe": 2010.0, "bruestung": 0.0},
     "fenster": {"breite": 1250.0, "hoehe": 1250.0, "bruestung": 900.0},
@@ -1382,9 +1382,10 @@ class Wand(Polylinie):
     which is computed by wand_verknuepfen()."""
 
     def __init__(self, punkte, geschlossen=False, dicke=240.0, ausrichtung="mitte",
-                 schraffur="", schraffur_abstand=60.0, **kw):
+                 schraffur="", schraffur_abstand=180.0, **kw):
         kw.pop("oeffnungen", None)
         kw.pop("_luecken", None)
+        kw.pop("_fenster", None)
         super().__init__(punkte, geschlossen, **kw)
         self.typ = "wand"
         self.dicke = max(1.0, float(dicke))
@@ -1392,10 +1393,12 @@ class Wand(Polylinie):
         self.schraffur = schraffur if schraffur in WAND_SCHRAFFUREN else ""
         self.schraffur_abstand = max(5.0, float(schraffur_abstand))
         self._luecken = []            # runtime only: [(segment, t0, t1)] door gaps
+        self._fenster = []            # runtime only: window openings (hatch stays free there)
 
     def to_dict(self):
         d = super().to_dict()
         d.pop("_luecken", None)
+        d.pop("_fenster", None)
         return d
 
     # ---- geometry -------------------------------------------------------
@@ -1447,9 +1450,13 @@ class Wand(Polylinie):
         """Outline as polylines [(points, closed)]; door gaps are cut out. With schraffur=True
         the hatch lines of the wall body are included (drawing, PDF, DXF)."""
         out = self._kontur()
-        if schraffur and self.schraffur:
+        if schraffur and self.schraffur in ("schraeg", "kreuz"):
             out = out + [(pl, False) for pl in self._schraffurlinien()]
         return out
+
+    def flaechen(self):
+        """Solid fill of the wall body (convex quadrilaterals) or []."""
+        return self.koerper() if self.schraffur == "voll" else []
 
     def koerper(self):
         """Wall body as convex quadrilaterals (one per segment piece, door gaps left out)."""
@@ -1460,7 +1467,7 @@ class Wand(Polylinie):
         pts = self.punkte
         ol, orr = _wand_versatz(self.ausrichtung, self.dicke)
         luecken = [[] for _ in segs]
-        for k, t0, t1 in getattr(self, "_luecken", []):
+        for k, t0, t1 in list(getattr(self, "_luecken", [])) + list(getattr(self, "_fenster", [])):
             if 0 <= k < len(segs) and t1 > t0:
                 luecken[k].append((t0, t1))
 
@@ -1730,12 +1737,13 @@ def wand_verknuepfen(elemente):
     oeff = [e for e in elemente if isinstance(e, Oeffnung)]
     for w in waende:
         w._luecken = []
+        w._fenster = []
     for o in oeff:
         o._geo = None
         beste = None
         for w in waende:
-            tol = o.breite / 2.0
-            if not w.punkt_im_koerper(o.x, o.y, tol * 0.0):
+            # tolerant: a point on the wall line / face counts as inside (rounding!)
+            if not w.punkt_im_koerper(o.x, o.y, max(1.0, 0.5 * w.dicke)):
                 continue
             r = w.naechstes_segment(o.x, o.y)
             if r is not None and (beste is None or r[0] < beste[0]):
@@ -1758,6 +1766,8 @@ def wand_verknuepfen(elemente):
         o.winkel = math.degrees(math.atan2(uy, ux)) % 360.0
         if o.art == "tuer":
             w._luecken.append((k, s0 / ln, s1 / ln))
+        else:
+            w._fenster.append((k, s0 / ln, s1 / ln))
 
 
 def _gerade_schnitt(p1, p2, q1, q2):
