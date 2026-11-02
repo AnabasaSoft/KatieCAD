@@ -2934,7 +2934,11 @@ class BlockReferenz(Element):
                 k.refs = list(self.refs)
                 k.kontakte = list(self.kontakte)
                 k.platzhalter = False
-                k.versatz = {t[2:]: v for t, v in tv.items() if t.startswith("M:")}
+                # text positions chosen in the definition (before "create device")
+                # are kept; moving a text in the instance overrides them
+                vers = {t: list(v) for t, v in k.versatz.items()}
+                vers.update({t[2:]: v for t, v in tv.items() if t.startswith("M:")})
+                k.versatz = vers
                 k.aufgeloest(False)               # fills the automatic positions
                 for t, (ax, ay) in k._anker.items():
                     self._anker["M:" + t] = (ax, ay)

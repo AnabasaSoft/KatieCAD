@@ -113,4 +113,24 @@ check(mp3.pole == "3+N" and mp3.einpolig, "Laden: pole")
 bb = core.BlockReferenz(0, 0, "X", [core.Rechteck(-5, -5, 5, 5), mp])
 check(core.ist_einpolig(bb) and bb.geraet_maske().pole == "3+N", "Block traegt Polzahl")
 
+# ---- text positions of the mask survive "create device" / insertion ------------
+md = core.ElektroMaske(8, 0, {"IND": "-F"}, einpolig=True, pole="3", versatz={"POLE": [-4.0, -2.0], "IND": [1.0, 0.0]})
+def pos(ref, inhalt):
+    for m in ref.aufgeloest():
+        if isinstance(m, core.ElektroMaske):
+            for e in m.aufgeloest(False):
+                if getattr(e, "inhalt", None) == inhalt:
+                    return (e.x, e.y)
+bd = core.BlockReferenz(0, 0, "Sym", [core.Rechteck(-5, -5, 5, 5), md])
+bd.attribute["IND"] = "-F"
+frei = core.ElektroMaske(8, 0, {"IND": "-F"}, einpolig=True, pole="3")
+bf = core.BlockReferenz(0, 0, "Sym", [core.Rechteck(-5, -5, 5, 5), frei]); bf.attribute["IND"] = "-F"
+px, py = pos(bd, "3"); fx, fy = pos(bf, "3")
+check(abs((px - fx) + 4.0) < 1e-6 and abs((py - fy) + 2.0) < 1e-6, f"Polzahl-Position aus Definition: {(px-fx, py-fy)}")
+ix, iy = pos(bd, "-F"); jx, jy = pos(bf, "-F")
+check(abs((ix - jx) - 1.0) < 1e-6, "IND-Position aus Definition")
+bd.text_versatz["M:POLE"] = [0.0, 5.0]; bd._cache = None
+qx, qy = pos(bd, "3")
+check(abs(qx - fx) < 1e-6 and abs(qy - fy - 5.0) < 1e-6, "Instanz-Versatz ueberschreibt Definition")
+
 print(f"OK ({ok} Pruefungen)")

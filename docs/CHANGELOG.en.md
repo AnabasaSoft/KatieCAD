@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.3
+- Fix: **moved mask texts (IND, MAN, TYP, PER, number of poles) keep their position on "Create device"** (they used to jump back to the default position); moving a text later on the placed device overrides the preset
 - New: **F1 opens an overview of all keyboard shortcuts, mouse actions and commands** (scrollable, with search field; also Help > Keyboard shortcuts and commands). The command list is generated from the program's command table, so it stays complete
 - New: generator `tools/make_symbols_einpolig.py` for **single-pole symbols** (folder "12 Single-pole", attribute POLE for the pole count, attribute STRICH for the pole stroke "/" (empty = none), tick "Single-pole representation" preset); writes only into its own output folder
 - New: **number of poles for your own single-pole devices** (field "Number of poles" in the device dialog, e.g. 3 or 3+N, shown exactly as typed above the identifier)
