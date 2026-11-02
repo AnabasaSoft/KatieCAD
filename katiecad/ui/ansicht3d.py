@@ -1068,7 +1068,8 @@ class Ansicht3D(tk.Frame):
 
     @staticmethod
     def _ecken_von(elemente):
-        """The 8 corners of the bounding box of each object (fixture points of a block)."""
+        """The 8 corners and 12 edge midpoints of the bounding box of each object
+        (fixture points of a block)."""
         out = []
         for el in elemente:
             b = None
@@ -1087,6 +1088,17 @@ class Ansicht3D(tk.Frame):
                 for y in (b[1], b[4]):
                     for z in (b[2], b[5]):
                         out.append((x, y, z))
+            # midpoints of the 12 box edges (move / place: edge midpoint onto a snap point)
+            mx, my, mz = (b[0] + b[3]) / 2.0, (b[1] + b[4]) / 2.0, (b[2] + b[5]) / 2.0
+            for y in (b[1], b[4]):
+                for z in (b[2], b[5]):
+                    out.append((mx, y, z))
+            for x in (b[0], b[3]):
+                for z in (b[2], b[5]):
+                    out.append((x, my, z))
+            for x in (b[0], b[3]):
+                for y in (b[1], b[4]):
+                    out.append((x, y, mz))
         return out
 
     def _fang_marke(self, punkte):

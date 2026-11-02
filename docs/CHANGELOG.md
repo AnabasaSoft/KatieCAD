@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.3
+- Neu: **3D – Objektfang beim Verschieben und Platzieren auch mit den Kantenmitten des bewegten Körpers** (bisher nur mit dessen Ecken); die Kantenmitten bestehender Körper wurden schon gefangen
 - Fix: **Verschobene Maskentexte (IND, MAN, TYP, PER, Polzahl) bleiben beim „Gerät erstellen“ an ihrer Position** (sie sprangen vorher auf die Standardlage zurück); ein späteres Verschieben am platzierten Gerät überschreibt die Vorgabe
 - Neu: **F1 öffnet eine Übersicht aller Tastenkürzel, Maus-Aktionen und Befehle** (scrollbar, mit Suchfeld; auch Hilfe › Tastenkürzel und Befehle). Die Befehlsliste wird aus der Befehlstabelle des Programms erzeugt und bleibt dadurch vollständig
 - Neu: Generator `tools/make_symbols_einpolig.py` für **einpolige Symbole** (Ordner „12 Single-pole“, Attribut POLE für die Polzahl, Attribut STRICH für den Polstrich „/“ (leer = ohne Strich), Häkchen „Einpolige Darstellung“ schon gesetzt); schreibt nur in einen eigenen Ausgabeordner

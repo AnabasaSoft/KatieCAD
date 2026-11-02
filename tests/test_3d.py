@@ -275,7 +275,10 @@ for k in ("d3.schrank.tuer", "d3.schrank.seite_l", "d3.schrank.seite_r"):
 check({"Türgriff", "Schloss"} <= set(_b2), "Schrank: Türgriff + Schloss")
 check(_b2["Türgriff"][1] < 0 and _b2["Schloss"][1] < _b2["Türgriff"][1], "Griff ragt vor der Tür")
 _e = W.Ansicht3D._ecken_von([_g2])
-check(len(_e) == 8 and min(p[1] for p in _e) == 0.0, "Fangecken ohne Griff/Tür")
+check(len(_e) == 20 and min(p[1] for p in _e) == 0.0, "Fangpunkte (8 Ecken + 12 Kantenmitten) ohne Griff/Tür")
+_bq = core.quader(0, 0, 100, 10, 0, 6)
+_eq = W.Ansicht3D._ecken_von([_bq])
+check((50.0, 0.0, 0.0) in _eq and (0.0, 5.0, 6.0) in _eq and (100.0, 10.0, 3.0) in _eq, "Kantenmitten des bewegten Koerpers")
 _gl = SCH.schrank_bauen(600, 1800, 300, 0, 0, 0, None, 0, True, False, False, True)
 _bl = {t.bez: t.bbox3() for t in _gl.teile}
 check(_bl["Türgriff"][0] < 100 and _b2["Türgriff"][3] > 500, "Türgriff links/rechts")
