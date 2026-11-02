@@ -158,4 +158,12 @@ check(core.BEFEHLE.get("WANDVERBINDEN") == "wand:verbinden", "Befehl WANDVERBIND
 check(core.WAND_LAYER_FARBE[0] == "#c29bff", "Wandebene in der Standardfarbe")
 from katiecad.ui import icons as IC
 check(all(n in IC.NAMEN for n in ("wand", "tuer", "fenster", "wandverb")), "Icons registriert")
+# doppelt liegende Waende: eine Tuer / ein Fenster schneidet in alle
+_a = core.Wand([(0, 0), (4000, 0)], dicke=240, schraffur="schraeg")
+_b = core.Wand([(0, 0), (4000, 0)], dicke=240, schraffur="schraeg")
+_t = core.Oeffnung("tuer", 1000, 0)
+_f = core.Oeffnung("fenster", 3000, 0)
+core.wand_verknuepfen([_a, _b, _t, _f])
+check(bool(_a._luecken) and bool(_b._luecken), "Doppelte Waende: Tuer schneidet in beide")
+check(bool(_a._fenster) and bool(_b._fenster), "Doppelte Waende: Fenster in beiden")
 print(f"test_wand - {ok} Checks bestanden")

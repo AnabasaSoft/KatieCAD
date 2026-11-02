@@ -7,6 +7,8 @@
 - Neu: **Knopf „Wände verbinden“** in der Werkzeugleiste: erste und zweite Wand anklicken, sie werden sofort zu einer Wand mit Gehrungsecke
 - Neu: Wandschraffur auch als **Vollfläche** (ausgefüllt); Standard-Linienabstand 180 mm
 - Fix: Schraffur lief durch Türen und Fenster; Türen und Fenster auf der Wandlinie (Lage „links/rechts“) wurden teils nicht in der Wand erkannt und schnitten keine Lücke
+- Fix: **„Wände verbinden“** blieb nach dem ersten Klick hängen (der Klick wurde auf den Objektfang gezogen und traf wieder die erste Wand); jetzt zählt die tatsächliche Klickposition, die zweite Wand muss eine andere sein, danach kehrt das Werkzeug zur Auswahl zurück
+- Fix: liegen mehrere Wände übereinander, schneiden Tür und Fenster jetzt in alle (vorher blieb die Schraffur der anderen Wand stehen)
 - Änderung: die Ebene „Wände“ hat standardmäßig die Farbe #c29bff
 - Änderung: Programmversion 1.1.3 (Info-Fenster, Installer)
 - Neu: **Schranktüren pro Viewport ausblenden** (Rechtsklick auf den Viewport › 3D-Ansicht in diesem Viewport › Schranktüren ausblenden): Tür, Türgriff und Schloss verschwinden nur in diesem Viewport; derselbe Schrank erscheint so in einem Layout mit und ohne Tür, ohne ihn doppelt zu zeichnen. Gespeichert mit dem Projekt, wirkt auf Objektfang und PDF

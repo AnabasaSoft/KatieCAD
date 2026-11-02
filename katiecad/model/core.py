@@ -1740,34 +1740,37 @@ def wand_verknuepfen(elemente):
         w._fenster = []
     for o in oeff:
         o._geo = None
-        beste = None
+        treffer = []
         for w in waende:
             # tolerant: a point on the wall line / face counts as inside (rounding!)
             if not w.punkt_im_koerper(o.x, o.y, max(1.0, 0.5 * w.dicke)):
                 continue
             r = w.naechstes_segment(o.x, o.y)
-            if r is not None and (beste is None or r[0] < beste[0]):
-                beste = (r[0], w, r)
-        if beste is None:
+            if r is not None:
+                treffer.append((r[0], w, r))
+        if not treffer:
             continue
-        _d, w, (_dist, k, t, s, ln) = beste
-        i, j = w._segmente()[k]
-        ax, ay = w.punkte[i]
-        bx, by = w.punkte[j]
-        ux, uy = (bx - ax) / ln, (by - ay) / ln
-        ol, orr = _wand_versatz(w.ausrichtung, w.dicke)
-        h = o.breite / 2.0
-        s0 = max(0.0, s - h)
-        s1 = min(ln, s + h)
-        px, py = ax + (bx - ax) * t, ay + (by - ay) * t
-        o._geo = (px, py, ux, uy, ol, orr)
-        o.dicke = w.dicke
-        o.ausrichtung = w.ausrichtung
-        o.winkel = math.degrees(math.atan2(uy, ux)) % 360.0
-        if o.art == "tuer":
-            w._luecken.append((k, s0 / ln, s1 / ln))
-        else:
-            w._fenster.append((k, s0 / ln, s1 / ln))
+        treffer.sort(key=lambda t: t[0])
+        for n, (_d, w, (_dist, k, t, s, ln)) in enumerate(treffer):
+            i, j = w._segmente()[k]
+            ax, ay = w.punkte[i]
+            bx, by = w.punkte[j]
+            ux, uy = (bx - ax) / ln, (by - ay) / ln
+            ol, orr = _wand_versatz(w.ausrichtung, w.dicke)
+            h = o.breite / 2.0
+            s0 = max(0.0, s - h)
+            s1 = min(ln, s + h)
+            if n == 0:                       # the nearest wall decides how the opening is drawn
+                px, py = ax + (bx - ax) * t, ay + (by - ay) * t
+                o._geo = (px, py, ux, uy, ol, orr)
+                o.dicke = w.dicke
+                o.ausrichtung = w.ausrichtung
+                o.winkel = math.degrees(math.atan2(uy, ux)) % 360.0
+            # every wall that contains the opening gets the gap (also overlapping duplicates)
+            if o.art == "tuer":
+                w._luecken.append((k, s0 / ln, s1 / ln))
+            else:
+                w._fenster.append((k, s0 / ln, s1 / ln))
 
 
 def _gerade_schnitt(p1, p2, q1, q2):

@@ -4110,8 +4110,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             self._leitung_klick(x, y)
             return
         if werkzeug != "auswahl":
-            if (werkzeug == "bemassung" and not self._pts
-                    and self.bem_art.get() in ("radius", "durchmesser")):
+            if werkzeug == "wandverb" or (werkzeug == "bemassung" and not self._pts
+                                          and self.bem_art.get() in ("radius", "durchmesser")):
                 pt = self._px_zu_ctx(event.x, event.y)
             else:
                 pt = self._eingabepunkt(event, self.letzter_punkt)
@@ -4968,16 +4968,21 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self._wand_schraffur_abstand = dlg.result["schraffur_abstand"]
         self.status.set(tr("msg.wand.klick"))
 
-    def _wand_unter_punkt(self, pt):
+    def _wand_unter_punkt(self, pt, ausser=None):
+        """The wall under the point; with several overlapping ones the nearest centre line."""
         tol = 8 / self.view["zoom"]
-        for el in reversed(self._ctx_liste()):
-            if isinstance(el, Wand):
+        beste = None
+        for el in self._ctx_liste():
+            if isinstance(el, Wand) and el is not ausser:
                 l = self.layers.get(el.layer)
                 if l and not l.sichtbar:
                     continue
                 if el.punkt_im_koerper(pt[0], pt[1], tol):
-                    return el
-        return None
+                    r = el.naechstes_segment(pt[0], pt[1])
+                    d = r[0] if r else 0.0
+                    if beste is None or d < beste[0]:
+                        beste = (d, el)
+        return beste[1] if beste else None
 
     def _wand_oeffnung_klick(self, pt, art):
         """Door / window tool: click on a wall puts the object there (it is a normal object
@@ -5013,17 +5018,18 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
 
     def _wand_verbinden_klick(self, pt):
         """Join tool: click wall 1, then wall 2 - they are merged at once."""
-        w = self._wand_unter_punkt(pt)
+        erste = self._wand_verb_erste
+        if erste is not None and erste not in self._ctx_liste():
+            erste = self._wand_verb_erste = None
+        w = self._wand_unter_punkt(pt, ausser=erste)
         if w is None:
-            self.status.set(tr("msg.wand.keine"))
+            self.status.set(tr("msg.wand.keine" if erste is None else "msg.wand.verb_andere"))
             return
-        if self._wand_verb_erste is None or self._wand_verb_erste not in self._ctx_liste():
+        if erste is None:
             self._wand_verb_erste = w
             self.auswahl = [w]
             self.redraw()
             self.status.set(tr("msg.wand.verb_zweite"))
-            return
-        if w is self._wand_verb_erste:
             return
         self.auswahl = [self._wand_verb_erste, w]
         self._wand_verb_erste = None
