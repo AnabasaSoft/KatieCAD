@@ -3,13 +3,15 @@
 katiecad/model/eigenschaften.py - Common properties of a mixed selection
 (NO Tkinter). Used by the properties palette (Ctrl+1).
 """
-from katiecad.model.core import Text, Viewport, schrift_fett, schrift_name, schrift_setzen
+from katiecad.model.core import Text, Viewport, Bemassung, schrift_fett, schrift_name, schrift_setzen
 
 FETT_ANZEIGE = " fett"      # palette: "Arial fett"
 
 VERSCHIEDEN = "*"          # marker for "values differ"
 ALLGEMEIN = ("layer", "farbe", "linientyp", "staerke")
 TEXTFELDER = ("hoehe", "schriftart", "winkel", "einfuegepunkt")
+BEMFELDER = ("dez",)          # dimensions: number of decimal places (0 ... 6)
+DEZ_MAX = 6
 
 
 def _ziele(auswahl):
@@ -40,6 +42,10 @@ def gemeinsame(auswahl):
         if texte:
             werte = {_wert(e, f) for e in texte}
             out[f] = werte.pop() if len(werte) == 1 else VERSCHIEDEN
+    bem = [e for e in z if isinstance(e, Bemassung)]
+    if bem:
+        werte = {int(e.dez) for e in bem}
+        out["dez"] = werte.pop() if len(werte) == 1 else VERSCHIEDEN
     return out
 
 
@@ -48,7 +54,11 @@ def anwenden(auswahl, feld, wert):
     staerke: float or None. Returns the number of changed elements."""
     n = 0
     for e in _ziele(auswahl):
-        if feld in TEXTFELDER:
+        if feld in BEMFELDER:
+            if not isinstance(e, Bemassung):
+                continue
+            e.dez = max(0, min(DEZ_MAX, int(float(wert))))
+        elif feld in TEXTFELDER:
             if not isinstance(e, Text):
                 continue
             if feld == "schriftart":

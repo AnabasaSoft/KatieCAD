@@ -69,6 +69,15 @@ check(EG.gemeinsame([tb])["schriftart"] == "Arial fett", "Palette zeigt 'Arial f
 EG.anwenden([tn], "schriftart", "Arial fett"); check(tn.schriftart == "Arial|b", "Palette setzt fett")
 EG.anwenden([tn], "schriftart", "Arial"); check(tn.schriftart == "Arial", "Palette entfernt fett")
 
+# Bemassung: Nachkommastellen ueber die Eigenschaften
+_b1, _b2 = core.Bemassung(0, 0, 800, 0, mx=400, my=100), core.Bemassung(0, 0, 1600, 0, mx=400, my=100, dez=4)
+check(EG.gemeinsame([_b1, _b2])["dez"] == EG.VERSCHIEDEN and "dez" not in EG.gemeinsame([tn]), "Palette: Nachkommastellen nur bei Bemassung")
+EG.anwenden([_b1, _b2], "dez", "0")
+check(_b1.text(1.0, True) == "800" and _b2.text(1.0, True) == "1600", "Bemassung ohne Nachkommastellen")
+EG.anwenden([_b1], "dez", 4); check(_b1.text(1.0, False) == "800.0000", "Bemassung mit 4 Nachkommastellen")
+EG.anwenden([_b1], "dez", 99); check(_b1.dez == 6, "Nachkommastellen begrenzt auf 6")
+EG.anwenden([tn], "dez", 3); check(not hasattr(tn, "dez"), "Nachkommastellen wirken nicht auf Text")
+
 # Layer-Konstante
 check(core.FTEXT_LAYER == "F-Text" and core.FTEXT_LAYER in core.ELEKTRO_LAYER, "Layer F-Text")
 check(core.BEFEHLE["FTEXT"] == "tool:ftext", "Befehl FTEXT")

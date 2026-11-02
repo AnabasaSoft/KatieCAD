@@ -842,7 +842,7 @@ class PropertiesDialog(tk.Toplevel):
                           "x3", "y3"):
                     if k in self.geo_vars:
                         setattr(el, k, self.geo_vars[k].get())
-                el.dez = int(self.geo_vars["dez"].get())
+                el.dez = max(0, min(6, int(float(self.geo_vars["dez"].get()))))
                 el.richtung = self.richtung_var.get()
                 el.text_override = self.bem_text_var.get()
                 el.tx = el.ty = None
@@ -2180,6 +2180,13 @@ class EigenschaftenPalette(tk.Toplevel):
                           values=list(SCHRIFTARTEN) + [s + " fett" for s in SCHRIFTARTEN])
         cb.bind("<<ComboboxSelected>>", lambda e: self._anwenden("schriftart"))
         zeile(r, "schriftart", lambda: cb)
+        r += 1
+        v = tk.StringVar()                                # dimensions: decimal places
+        self._vars["dez"] = v
+        cb = ttk.Combobox(f, textvariable=v, width=6, state="readonly",
+                          values=[str(i) for i in range(7)])
+        cb.bind("<<ComboboxSelected>>", lambda e: self._anwenden("dez"))
+        zeile(r, "dez", lambda: cb)
         r += 1
         ttk.Label(f, text=tr("dlg.eig.hinweis"), style="Hint.TLabel",
                   wraplength=300, justify=tk.LEFT).grid(

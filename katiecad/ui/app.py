@@ -8868,6 +8868,11 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                               command=self.block_aufloesen)
             if any(isinstance(e, Bemassung) for e in self.auswahl):
                 m.add_command(label=tr("menu.bearbeiten.masstext"), command=self.masstext_aendern)
+                m_dez = tk.Menu(m, tearoff=0)
+                for n in range(0, 5):
+                    m_dez.add_command(label=str(n),
+                                      command=lambda n=n: self.eigenschaft_anwenden("dez", n))
+                m.add_cascade(label=tr("menu.bem.dez"), menu=m_dez)
             if any(isinstance(e, Wand) for e in self.auswahl):
                 m.add_command(label=tr("menu.wand.schraffur"),
                               command=self.wand_schraffur_umschalten)
