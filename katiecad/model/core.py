@@ -5613,7 +5613,8 @@ class Raum(Element):
     and its corner grips appear, so the room can be reshaped by its corners. The label sits at the
     centre of the area (grip "t" moves it)."""
 
-    def __init__(self, punkte, nummer="", bezeichnung="", hoehe=250.0, tx=None, ty=None, **kw):
+    def __init__(self, punkte, nummer="", bezeichnung="", hoehe=250.0, tx=None, ty=None,
+                 schriftart="Arial", **kw):
         super().__init__("raum", **kw)
         self.punkte = [tuple(float(v) for v in p) for p in punkte]
         self.nummer = str(nummer)
@@ -5621,6 +5622,7 @@ class Raum(Element):
         self.hoehe = max(1.0, float(hoehe))          # text height in mm
         self.tx = None if tx is None else float(tx)
         self.ty = None if ty is None else float(ty)
+        self.schriftart = schriftart or "Arial"        # font name (+ "|b" for bold), like Text
 
     # ---- geometry
     def flaeche_mm2(self):
@@ -5666,13 +5668,14 @@ class Raum(Element):
     def text_obj(self, komma=True):
         x, y = self.text_pos()
         return Text(x, y, self.inhalt(komma), hoehe=self.hoehe, einfuegepunkt="mitte_zentriert",
+                    schriftart=self.schriftart,
                     layer=self.layer, farbe=self.farbe, linientyp=self.linientyp,
                     eig_farbe=self.eig_farbe, staerke=self.staerke)
 
     def prims(self, komma=True):
         """Only the label is drawn (the frame stays invisible)."""
         x, y = self.text_pos()
-        return [("t", x, y, self.inhalt(komma), self.hoehe, 0.0, "Arial", "mitte_zentriert")]
+        return [("t", x, y, self.inhalt(komma), self.hoehe, 0.0, self.schriftart, "mitte_zentriert")]
 
     def trifft(self, x, y, tol=0.0, komma=True):
         return self.text_obj(komma).punkt_im_rahmen(x, y, tol)

@@ -4229,12 +4229,19 @@ class RaumDialog(tk.Toplevel):
         ttk.Label(f, text=tr("dlg.raum.hoehe")).grid(row=2, column=0, sticky=tk.W, pady=4)
         self.h_var = tk.StringVar(value=f"{raum.hoehe:g}")
         ttk.Entry(f, textvariable=self.h_var, width=10).grid(row=2, column=1, sticky=tk.W, padx=8)
+        ttk.Label(f, text=tr("dlg.text.schrift")).grid(row=3, column=0, sticky=tk.W, pady=4)
+        self.schrift_var = tk.StringVar(value=schrift_name(raum.schriftart))
+        ttk.Combobox(f, textvariable=self.schrift_var, values=SCHRIFTARTEN,
+                     width=20).grid(row=3, column=1, sticky=tk.W, padx=8)
+        self.fett_var = tk.BooleanVar(value=schrift_fett(raum.schriftart))
+        ttk.Checkbutton(f, text=tr("dlg.text.fett"), variable=self.fett_var
+                        ).grid(row=4, column=1, sticky=tk.W, padx=8)
         ttk.Label(f, text=tr("dlg.raum.flaeche", wert=f"{raum.flaeche_m2():.2f}"),
-                  style="Hint.TLabel").grid(row=3, column=0, columnspan=2, sticky=tk.W, pady=2)
+                  style="Hint.TLabel").grid(row=5, column=0, columnspan=2, sticky=tk.W, pady=2)
         ttk.Label(f, text=tr("dlg.raum.hinweis"), style="Hint.TLabel", wraplength=400,
-                  justify=tk.LEFT).grid(row=4, column=0, columnspan=2, sticky=tk.W, pady=(8, 2))
+                  justify=tk.LEFT).grid(row=6, column=0, columnspan=2, sticky=tk.W, pady=(8, 2))
         bf = ttk.Frame(f)
-        bf.grid(row=5, column=0, columnspan=2, pady=(10, 0))
+        bf.grid(row=7, column=0, columnspan=2, pady=(10, 0))
         ttk.Button(bf, text=tr("dlg.ok"), command=self._ok).pack(side=tk.LEFT, padx=4)
         ttk.Button(bf, text=tr("dlg.abbrechen"), command=self.destroy).pack(side=tk.LEFT, padx=4)
         self.bind("<Return>", lambda ev: self._ok())
@@ -4247,5 +4254,7 @@ class RaumDialog(tk.Toplevel):
             messagebox.showwarning(tr("dlg.raum.titel"), tr("dlg.wand.zahl"), parent=self)
             return
         self.result = {"nummer": self.nr_var.get().strip(), "bezeichnung": self.bez_var.get().strip(),
-                       "hoehe": h}
+                       "hoehe": h,
+                       "schriftart": schrift_setzen(self.schrift_var.get().strip() or "Arial",
+                                                    self.fett_var.get())}
         self.destroy()

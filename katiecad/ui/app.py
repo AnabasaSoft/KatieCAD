@@ -9065,7 +9065,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         """Fonts used by the texts of a loaded drawing that are installed here but not yet
         in the lists are switched on for this session (the PDF then embeds them)."""
         try:
-            benutzt = {schrift_name(e.schriftart) for e in self.elemente if isinstance(e, Text)}
+            benutzt = {schrift_name(e.schriftart) for e in self.elemente if isinstance(e, (Text, Raum))}
             fehlt = {n for n in benutzt if n and n not in SCHRIFTARTEN}
             if not fehlt:
                 return

@@ -227,4 +227,7 @@ for _n, (_p, _q) in {"exakt": ([(0, 0), (3000, 0)], [(3000, 0), (3000, 3000)]),
     check(isinstance(_r, dict) and _r.get("modus") != "t" and "punkte" in _r, "Ecke verschmilzt: " + _n)
 _L = core.Raum([(0, 0), (5000, 0), (5000, 2000), (2000, 2000), (2000, 4000), (0, 4000)])
 check(abs(_L.flaeche_m2() - 14.0) < 1e-9 and len(_L.griffe()) == 7, "Raum mit 6 Ecken: Flaeche 14 m2, 6 Eckgriffe + Schrift")
+_F = core.Raum([(0, 0), (1000, 0), (1000, 1000)], schriftart=core.schrift_setzen("Courier", True))
+check(_F.prims()[0][6] == "Courier|b" and _F.text_obj().schriftart == "Courier|b", "Raum: Schriftart (fett) in Anzeige und Trefferflaeche")
+check(core.Raum(**{k: v for k, v in core.Raum([(0, 0), (1, 0), (1, 1)]).to_dict().items() if k != "typ"}).schriftart == "Arial", "Raum: Standardschrift Arial")
 print(f"test_wand - {ok} Checks bestanden")
