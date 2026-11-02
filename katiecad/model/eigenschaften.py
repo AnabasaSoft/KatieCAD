@@ -10,7 +10,7 @@ FETT_ANZEIGE = " fett"      # palette: "Arial fett"
 VERSCHIEDEN = "*"          # marker for "values differ"
 ALLGEMEIN = ("layer", "farbe", "linientyp", "staerke")
 TEXTFELDER = ("hoehe", "schriftart", "winkel", "einfuegepunkt")
-BEMFELDER = ("dez",)          # dimensions: number of decimal places (0 ... 6)
+BEMFELDER = ("dez", "pfeil", "endstueck")          # dimensions: number of decimal places (0 ... 6)
 DEZ_MAX = 6
 
 
@@ -23,29 +23,37 @@ def _wert(el, feld):
         return schrift_name(el.schriftart) + (FETT_ANZEIGE if schrift_fett(el.schriftart) else "")
     if feld == "farbe":
         return el.farbe if el.eig_farbe else None      # None = by layer
+    if feld == "dez":
+        return int(el.dez)
     return getattr(el, feld)
 
 
 def gemeinsame(auswahl):
-    """-> {field: value | VERSCHIEDEN}; text fields only if the selection
-    contains text. farbe None = 'by layer'."""
+    """-> {field: value | VERSCHIEDEN}; text fields (height, font) apply to texts AND dimensions,
+    angle / insertion point to texts only, arrow size / end style to dimensions only.
+    farbe None = 'by layer'."""
     z = _ziele(auswahl)
     out = {}
     if not z:
         return out
-    felder = list(ALLGEMEIN)
     texte = [e for e in z if isinstance(e, Text)]
-    for f in felder:
-        werte = {_wert(e, f) for e in z}
-        out[f] = werte.pop() if len(werte) == 1 else VERSCHIEDEN
-    for f in TEXTFELDER:
-        if texte:
-            werte = {_wert(e, f) for e in texte}
-            out[f] = werte.pop() if len(werte) == 1 else VERSCHIEDEN
     bem = [e for e in z if isinstance(e, Bemassung)]
+
+    def sammeln(f, gruppe):
+        werte = {_wert(e, f) for e in gruppe}
+        out[f] = werte.pop() if len(werte) == 1 else VERSCHIEDEN
+
+    for f in ALLGEMEIN:
+        sammeln(f, z)
+    for f in TEXTFELDER:
+        gruppe = texte + bem if f in ("hoehe", "schriftart") else texte
+        if gruppe:
+            sammeln(f, gruppe)
     if bem:
-        werte = {int(e.dez) for e in bem}
-        out["dez"] = werte.pop() if len(werte) == 1 else VERSCHIEDEN
+        out["dez"] = None
+        sammeln("dez", bem)
+        sammeln("pfeil", bem)
+        sammeln("endstueck", bem)
     return out
 
 
@@ -57,9 +65,14 @@ def anwenden(auswahl, feld, wert):
         if feld in BEMFELDER:
             if not isinstance(e, Bemassung):
                 continue
-            e.dez = max(0, min(DEZ_MAX, int(float(wert))))
+            if feld == "dez":
+                e.dez = max(0, min(DEZ_MAX, int(float(wert))))
+            elif feld == "pfeil":
+                e.pfeil = max(0.05, float(wert))
+            elif feld == "endstueck":
+                e.endstueck = "strich" if wert == "strich" else "pfeil"
         elif feld in TEXTFELDER:
-            if not isinstance(e, Text):
+            if not isinstance(e, Text) and not (isinstance(e, Bemassung) and feld in ("hoehe", "schriftart")):
                 continue
             if feld == "schriftart":
                 w = str(wert)

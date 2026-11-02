@@ -2200,7 +2200,7 @@ class Bemassung(Element):
                  tx=None, ty=None, hoehe=2.5, pfeil=2.5, dez=2,
                  offset=10.0, offset_x=0.0, offset_y=0.0,
                  text_offset_x=0.0, text_offset_y=0.0, x3=None, y3=None,
-                 modell_skala=1.0, **kw):
+                 modell_skala=1.0, endstueck="pfeil", schriftart="Arial", **kw):
         super().__init__("bemassung", **kw)
         # layout: paper mm per model mm of the viewport the dimension was taken in (1 = none)
         self.modell_skala = float(modell_skala) or 1.0
@@ -2213,6 +2213,8 @@ class Bemassung(Element):
         self.hoehe = float(hoehe)
         self.pfeil = float(pfeil)
         self.dez = int(dez)
+        self.endstueck = endstueck if endstueck in ("pfeil", "strich") else "pfeil"   # arrow / diagonal tick
+        self.schriftart = schriftart or "Arial"
         self.tx, self.ty = tx, ty
         if mx is None or my is None:
             mx, my = self._alte_massposition(offset, offset_x, offset_y)
@@ -2312,6 +2314,19 @@ class Bemassung(Element):
         return s
 
     def geometrie(self, faktor=1.0, komma=True):
+        """Lines, arrows and text of the dimension; with end style "strich" the arrows are
+        replaced by diagonal ticks (45 degrees across the dimension line)."""
+        res = self._geometrie_roh(faktor, komma)
+        if getattr(self, "endstueck", "pfeil") == "strich" and res["pfeile"]:
+            d = max(0.05, self.pfeil) * 0.7
+            for (x, y, w, _pf) in res["pfeile"]:
+                a = w + math.pi / 4.0
+                res["linien"].append((x - d * math.cos(a), y - d * math.sin(a),
+                                      x + d * math.cos(a), y + d * math.sin(a)))
+            res["pfeile"] = []
+        return res
+
+    def _geometrie_roh(self, faktor=1.0, komma=True):
         h = max(0.05, self.hoehe)
         pf = max(0.05, self.pfeil)
         s = h / 2.5

@@ -82,7 +82,7 @@ def _prims(el, skala, einh_faktor, dezimalkomma):
         out += [("p", p[0], p[1], p[2], p[3]) for p in g["pfeile"]]
         if g["text"]:
             s, cx, cy, ang, w, h = g["text"]
-            out.append(("t", cx, cy, s, h, ang, "Arial", "mitte_zentriert"))
+            out.append(("t", cx, cy, s, h, ang, getattr(el, "schriftart", "Arial"), "mitte_zentriert"))
         return out
     return []
 

@@ -78,6 +78,18 @@ EG.anwenden([_b1], "dez", 4); check(_b1.text(1.0, False) == "800.0000", "Bemassu
 EG.anwenden([_b1], "dez", 99); check(_b1.dez == 6, "Nachkommastellen begrenzt auf 6")
 EG.anwenden([tn], "dez", 3); check(not hasattr(tn, "dez"), "Nachkommastellen wirken nicht auf Text")
 
+# Bemassung: Texthoehe, Pfeilgroesse, Endstueck, Schrift ueber die Eigenschaften
+_g = EG.gemeinsame([_b1])
+check({"hoehe", "schriftart", "pfeil", "endstueck", "dez"} <= set(_g) and "winkel" not in _g, "Palette: Felder fuer Bemassung")
+EG.anwenden([_b1], "hoehe", "4"); EG.anwenden([_b1], "pfeil", "5"); EG.anwenden([_b1], "schriftart", "Courier fett")
+check((_b1.hoehe, _b1.pfeil, _b1.schriftart) == (4.0, 5.0, "Courier|b"), "Bemassung: Texthoehe / Pfeilgroesse / Schrift setzbar")
+check(len(_b1.geometrie()["pfeile"]) == 2, "Bemassung: Pfeile")
+_n = len(_b1.geometrie()["linien"])
+EG.anwenden([_b1], "endstueck", "strich")
+_g2 = _b1.geometrie()
+check(_g2["pfeile"] == [] and len(_g2["linien"]) == _n + 2, "Bemassung: Schraegstrich statt Pfeil")
+check(core.Bemassung(**{k: v for k, v in _b1.to_dict().items() if k != "typ"}).endstueck == "strich", "Endstueck speichern / laden")
+
 # Layer-Konstante
 check(core.FTEXT_LAYER == "F-Text" and core.FTEXT_LAYER in core.ELEKTRO_LAYER, "Layer F-Text")
 check(core.BEFEHLE["FTEXT"] == "tool:ftext", "Befehl FTEXT")

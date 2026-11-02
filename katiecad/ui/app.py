@@ -426,6 +426,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self.bem_art = tk.StringVar(value="auto")
         self.bem_hoehe = tk.DoubleVar(value=2.5)
         self.bem_pfeil = tk.DoubleVar(value=2.5)
+        self.bem_endstueck = tk.StringVar(value="pfeil")        # "pfeil" | "strich"
+        self._bem_end_anzeige = tk.StringVar(value=tr("dlg.eig.end.pfeil"))
         self.bem_dez = tk.IntVar(value=2)
         self.dezimalkomma = tk.BooleanVar(value=(SPRACHE["aktuell"] == "de"))
         self._pts = []
@@ -1708,6 +1710,10 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self.lbl_bem_p = ttk.Label(tb3, text=" " + tr("tb.mass.pfeil"), style="Title.TLabel")
         self.sp_bem_p = ttk.Spinbox(tb3, textvariable=self.bem_pfeil,
                                     from_=0.5, to=100.0, increment=0.5, width=5)
+        self.cb_bem_end = ttk.Combobox(tb3, state="readonly", width=12, textvariable=self._bem_end_anzeige,
+                                       values=[tr("dlg.eig.end.pfeil"), tr("dlg.eig.end.strich")])
+        self.cb_bem_end.bind("<<ComboboxSelected>>", lambda e: self.bem_endstueck.set(
+            "strich" if self._bem_end_anzeige.get() == tr("dlg.eig.end.strich") else "pfeil"))
         self.lbl_bem_d = ttk.Label(tb3, text=" " + tr("tb.mass.nachkomma"), style="Title.TLabel")
         self.sp_bem_d = ttk.Spinbox(tb3, textvariable=self.bem_dez,
                                     from_=0, to=6, increment=1, width=3)
@@ -1715,7 +1721,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                                             variable=self.dezimalkomma,
                                             command=self.redraw)
         self.bem_widgets = [self.lbl_bem, self.cb_bem_art, self.lbl_bem_h, self.sp_bem_h,
-                            self.lbl_bem_p, self.sp_bem_p, self.lbl_bem_d, self.sp_bem_d,
+                            self.lbl_bem_p, self.sp_bem_p, self.cb_bem_end, self.lbl_bem_d, self.sp_bem_d,
                             self.cb_bem_komma]
 
         self._tb3_anker = ttk.Frame(tb3, width=1)
@@ -7200,7 +7206,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             out += [("p", p[0], p[1], p[2], p[3]) for p in g["pfeile"]]
             if g["text"]:
                 s, cx, cy, ang, w, h = g["text"]
-                out.append(("t", cx, cy, s, h, ang, "Arial", "mitte_zentriert"))
+                out.append(("t", cx, cy, s, h, ang, getattr(el, "schriftart", "Arial"), "mitte_zentriert"))
             return out
         return []
 
@@ -7466,7 +7472,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                              x3=pts[2][0], y3=pts[2][1],
                              mx=m[0], my=m[1], richtung="winkel",
                              hoehe=self._zahl(self.bem_hoehe, 2.5),
-                             pfeil=self._zahl(self.bem_pfeil, 2.5),
+                             pfeil=self._zahl(self.bem_pfeil, 2.5), endstueck=self.bem_endstueck.get(),
                              dez=self._zahl(self.bem_dez, 2, ganz=True), **daten)
         if art in ("radius", "durchmesser"):
             richt = art
@@ -7477,7 +7483,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         return Bemassung(pts[0][0], pts[0][1], pts[1][0], pts[1][1],
                          mx=m[0], my=m[1], richtung=richt,
                          hoehe=self._zahl(self.bem_hoehe, 2.5),
-                         pfeil=self._zahl(self.bem_pfeil, 2.5),
+                         pfeil=self._zahl(self.bem_pfeil, 2.5), endstueck=self.bem_endstueck.get(),
                          dez=self._zahl(self.bem_dez, 2, ganz=True), **daten)
 
     def _winkel_hinweis(self):

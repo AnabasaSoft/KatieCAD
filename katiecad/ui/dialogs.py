@@ -646,6 +646,12 @@ class PropertiesDialog(tk.Toplevel):
                       + (("x3", "y3") if element.x3 is not None else ())):
                 add_geo(k.upper() + ":", k, getattr(element, k))
             add_geo("Nachkommastellen:", "dez", element.dez)
+            ttk.Label(f, text=tr("dlg.eig.endstueck")).grid(row=row, column=0, sticky=tk.W, pady=3)
+            self.endstueck_var = tk.StringVar(value=tr("dlg.eig.end." + element.endstueck))
+            ttk.Combobox(f, textvariable=self.endstueck_var, state="readonly", width=18,
+                         values=[tr("dlg.eig.end.pfeil"), tr("dlg.eig.end.strich")]).grid(
+                row=row, column=1, sticky=tk.W, pady=3)
+            row += 1
             ttk.Label(f, text="Art:").grid(row=row, column=0, sticky=tk.W, pady=3)
             self.richtung_var = tk.StringVar(value=element.richtung)
             ttk.Combobox(f, textvariable=self.richtung_var,
@@ -843,6 +849,7 @@ class PropertiesDialog(tk.Toplevel):
                     if k in self.geo_vars:
                         setattr(el, k, self.geo_vars[k].get())
                 el.dez = max(0, min(6, int(float(self.geo_vars["dez"].get()))))
+                el.endstueck = "strich" if self.endstueck_var.get() == tr("dlg.eig.end.strich") else "pfeil"
                 el.richtung = self.richtung_var.get()
                 el.text_override = self.bem_text_var.get()
                 el.tx = el.ty = None
@@ -2159,7 +2166,7 @@ class EigenschaftenPalette(tk.Toplevel):
                    command=lambda: self._anwenden("farbe", None)).pack(side=tk.LEFT, padx=4)
         zeile(r, "farbe", lambda: fr)
         r += 1
-        for feld, br in (("staerke", 10), ("hoehe", 10), ("winkel", 10)):
+        for feld, br in (("staerke", 10), ("hoehe", 10), ("winkel", 10), ("pfeil", 10)):
             v = tk.StringVar()
             self._vars[feld] = v
             if feld == "staerke":                         # entry + "by layer"
@@ -2180,6 +2187,13 @@ class EigenschaftenPalette(tk.Toplevel):
                           values=list(SCHRIFTARTEN) + [s + " fett" for s in SCHRIFTARTEN])
         cb.bind("<<ComboboxSelected>>", lambda e: self._anwenden("schriftart"))
         zeile(r, "schriftart", lambda: cb)
+        r += 1
+        v = tk.StringVar()                                # dimensions: end piece
+        self._vars["endstueck"] = v
+        cb = ttk.Combobox(f, textvariable=v, width=14, state="readonly",
+                          values=[tr("dlg.eig.end.pfeil"), tr("dlg.eig.end.strich")])
+        cb.bind("<<ComboboxSelected>>", lambda e: self._anwenden("endstueck"))
+        zeile(r, "endstueck", lambda: cb)
         r += 1
         v = tk.StringVar()                                # dimensions: decimal places
         self._vars["dez"] = v
@@ -2225,6 +2239,8 @@ class EigenschaftenPalette(tk.Toplevel):
                 txt = tr("dlg.eig.verschieden")
             elif val is None:
                 txt = tr("dlg.eig.vonlayer") if feld in ("farbe", "staerke") else ""
+            elif feld == "endstueck":
+                txt = tr("dlg.eig.end." + str(val))
             elif isinstance(val, float):
                 txt = ("%g" % val)
             else:
@@ -2247,7 +2263,9 @@ class EigenschaftenPalette(tk.Toplevel):
                 return
             if wert == tr("dlg.eig.verschieden"):
                 return
-            if feld in ("hoehe", "winkel", "staerke"):
+            if feld == "endstueck":
+                wert = "strich" if wert == tr("dlg.eig.end.strich") else "pfeil"
+            if feld in ("hoehe", "winkel", "staerke", "pfeil"):
                 if feld == "staerke" and wert in ("", tr("dlg.eig.vonlayer")):
                     wert = None
                 else:
@@ -2256,7 +2274,7 @@ class EigenschaftenPalette(tk.Toplevel):
                     except ValueError:
                         self.aktualisieren()
                         return
-                    if feld in ("hoehe", "staerke") and wert <= 0:
+                    if feld in ("hoehe", "staerke", "pfeil") and wert <= 0:
                         self.aktualisieren()
                         return
         self.app.eigenschaft_anwenden(feld, wert)
