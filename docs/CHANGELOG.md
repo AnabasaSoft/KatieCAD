@@ -7,6 +7,9 @@
 - Neu: **Knopf „Wände verbinden“** in der Werkzeugleiste: erste und zweite Wand anklicken, sie werden sofort zu einer Wand mit Gehrungsecke
 - Neu: Wandschraffur auch als **Vollfläche** (ausgefüllt); Standard-Linienabstand 180 mm
 - Fix: Schraffur lief durch Türen und Fenster; Türen und Fenster auf der Wandlinie (Lage „links/rechts“) wurden teils nicht in der Wand erkannt und schnitten keine Lücke
+- Neu: **Wände bilden automatisch eine gemeinsame Kontur:** wo sich Wände berühren, kreuzen oder überlappen, entfallen Wandflächen, Endkappen und Schraffur im Inneren der anderen Wand (T-Anschlüsse, Kreuzungen, Überstände)
+- Neu: **T-Anschluss mit „Wände verbinden“:** liegt das Ende einer Wand vor oder in der Mitte einer anderen, wird es auf deren Mittellinie verlängert bzw. gekürzt
+- Fix: **Ortho** gilt jetzt auch beim Ziehen von Wand- und Polylinienpunkten an den Griffen (relativ zum Nachbarpunkt)
 - Fix: **„Wände verbinden“** blieb nach dem ersten Klick hängen (der Klick wurde auf den Objektfang gezogen und traf wieder die erste Wand); jetzt zählt die tatsächliche Klickposition, die zweite Wand muss eine andere sein, danach kehrt das Werkzeug zur Auswahl zurück
 - Fix: liegen mehrere Wände übereinander, schneiden Tür und Fenster jetzt in alle (vorher blieb die Schraffur der anderen Wand stehen)
 - Änderung: die Ebene „Wände“ hat standardmäßig die Farbe #c29bff

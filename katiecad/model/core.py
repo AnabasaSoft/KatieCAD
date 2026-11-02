@@ -1374,6 +1374,96 @@ def _wand_versatz(ausrichtung, dicke):
             "links": (0.0, dicke), "rechts": (dicke, 0.0)}[ausrichtung]
 
 
+def _strecke_im_viereck(p, q, quad, eps=0.5):
+    """Parameter interval (t0, t1) of the segment p-q lying strictly inside the convex polygon
+    `quad` (at least eps mm from its boundary) or None."""
+    area = 0.0
+    n = len(quad)
+    for k in range(n):
+        x1, y1 = quad[k]
+        x2, y2 = quad[(k + 1) % n]
+        area += x1 * y2 - x2 * y1
+    if abs(area) < 1e-6:
+        return None
+    sg = 1.0 if area > 0 else -1.0
+    t0, t1 = 0.0, 1.0
+    for k in range(n):
+        ax, ay = quad[k]
+        bx, by = quad[(k + 1) % n]
+        ex, ey = bx - ax, by - ay
+        ln = math.hypot(ex, ey)
+        if ln < 1e-9:
+            continue
+        nx, ny = -ey / ln * sg, ex / ln * sg
+        d0 = nx * (p[0] - ax) + ny * (p[1] - ay) - eps
+        d1 = nx * (q[0] - ax) + ny * (q[1] - ay) - eps
+        if abs(d1 - d0) < 1e-12:
+            if d0 <= 0:
+                return None
+            continue
+        tt = -d0 / (d1 - d0)
+        if d1 > d0:
+            t0 = max(t0, tt)
+        else:
+            t1 = min(t1, tt)
+        if t0 >= t1:
+            return None
+    return (t0, t1) if t1 - t0 > 1e-9 else None
+
+
+def _linien_beschneiden(polys, quads, eps=0.5):
+    """Removes the parts of the polylines [(points, closed)] that lie inside one of the convex
+    `quads` (walls overlapping each other: the faces inside the other wall disappear)."""
+    if not quads:
+        return polys
+    boxen = [(min(x for x, _ in qd), min(y for _, y in qd), max(x for x, _ in qd), max(y for _, y in qd))
+             for qd in quads]
+    out = []
+    for pts, geschl in polys:
+        n = len(pts)
+        kanten = [(pts[k], pts[(k + 1) % n]) for k in range(n if geschl else n - 1)]
+        stuecke, geaendert = [], False
+        for p, q in kanten:
+            bx0, bx1 = min(p[0], q[0]), max(p[0], q[0])
+            by0, by1 = min(p[1], q[1]), max(p[1], q[1])
+            iv = []
+            for qd, bb in zip(quads, boxen):
+                if bx1 < bb[0] or bx0 > bb[2] or by1 < bb[1] or by0 > bb[3]:
+                    continue
+                r = _strecke_im_viereck(p, q, qd, eps)
+                if r:
+                    iv.append(r)
+            if not iv:
+                stuecke.append((p, q))
+                continue
+            geaendert = True
+            iv.sort()
+            t = 0.0
+            for a, b in iv:
+                if a > t + 1e-9:
+                    stuecke.append(((p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t),
+                                    (p[0] + (q[0] - p[0]) * a, p[1] + (q[1] - p[1]) * a)))
+                t = max(t, b)
+            if t < 1.0 - 1e-9:
+                stuecke.append(((p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t), q))
+        if not geaendert:
+            out.append((pts, geschl))
+            continue
+        lauf = None
+        for p, q in stuecke:
+            if math.hypot(q[0] - p[0], q[1] - p[1]) < 1e-6:
+                continue
+            if lauf is not None and math.hypot(lauf[-1][0] - p[0], lauf[-1][1] - p[1]) < 1e-6:
+                lauf.append(q)
+            else:
+                if lauf is not None:
+                    out.append((lauf, False))
+                lauf = [p, q]
+        if lauf is not None:
+            out.append((lauf, False))
+    return out
+
+
 class Wand(Polylinie):
     """Building wall: centre line `punkte` (like a polyline), thickness `dicke` and
     `ausrichtung` of the line to the wall body ("mitte" = centred, "links"/"rechts" = the line
@@ -1386,6 +1476,8 @@ class Wand(Polylinie):
         kw.pop("oeffnungen", None)
         kw.pop("_luecken", None)
         kw.pop("_fenster", None)
+        kw.pop("_abzug", None)
+        kw.pop("_abzug_schr", None)
         super().__init__(punkte, geschlossen, **kw)
         self.typ = "wand"
         self.dicke = max(1.0, float(dicke))
@@ -1394,11 +1486,15 @@ class Wand(Polylinie):
         self.schraffur_abstand = max(5.0, float(schraffur_abstand))
         self._luecken = []            # runtime only: [(segment, t0, t1)] door gaps
         self._fenster = []            # runtime only: window openings (hatch stays free there)
+        self._abzug = []              # runtime only: bodies of other walls (faces inside them vanish)
+        self._abzug_schr = []         # runtime only: bodies of earlier hatched walls (no double hatch)
 
     def to_dict(self):
         d = super().to_dict()
         d.pop("_luecken", None)
         d.pop("_fenster", None)
+        d.pop("_abzug", None)
+        d.pop("_abzug_schr", None)
         return d
 
     # ---- geometry -------------------------------------------------------
@@ -1527,6 +1623,9 @@ class Wand(Polylinie):
                         p0, p1 = treffer[0], treffer[-1]
                         if math.hypot(p1[0] - p0[0], p1[1] - p0[1]) > 1e-6:
                             out.append([p0, p1])
+        frueher = getattr(self, "_abzug_schr", [])
+        if frueher and out:
+            out = [pl for pl, _c in _linien_beschneiden([(l, False) for l in out], frueher)]
         return out
 
     def _kontur(self):
@@ -1571,7 +1670,8 @@ class Wand(Polylinie):
         if not geschl:
             out.append(([L[0], R[0]], False))                    # end caps
             out.append(([L[-1], R[-1]], False))
-        return [(p, c) for (p, c) in out if len(p) >= 2]
+        out = [(p, c) for (p, c) in out if len(p) >= 2]
+        return _linien_beschneiden(out, getattr(self, "_abzug", []))
 
     def bbox(self):
         xs, ys = [], []
@@ -1771,6 +1871,29 @@ def wand_verknuepfen(elemente):
                 w._luecken.append((k, s0 / ln, s1 / ln))
             else:
                 w._fenster.append((k, s0 / ln, s1 / ln))
+    waende_bereinigen(waende)
+
+
+def waende_bereinigen(waende):
+    """Walls that touch or cross each other form one outline: the faces (and the hatch) of a
+    wall inside the body of another wall are not drawn (runtime only, nothing is saved)."""
+    koerper = [w.koerper() for w in waende]
+    boxen = []
+    for qs in koerper:
+        pts = [p for qd in qs for p in qd]
+        boxen.append((min(x for x, _ in pts), min(y for _, y in pts),
+                      max(x for x, _ in pts), max(y for _, y in pts)) if pts else None)
+    for i, w in enumerate(waende):
+        w._abzug, w._abzug_schr = [], []
+        for j, v in enumerate(waende):
+            if i == j or boxen[i] is None or boxen[j] is None:
+                continue
+            a, b = boxen[i], boxen[j]
+            if b[2] < a[0] or b[0] > a[2] or b[3] < a[1] or b[1] > a[3]:
+                continue
+            w._abzug += koerper[j]
+            if j < i and v.schraffur in ("schraeg", "kreuz") and v.schraffur_abstand == w.schraffur_abstand:
+                w._abzug_schr += koerper[j]
 
 
 def _gerade_schnitt(p1, p2, q1, q2):
@@ -1784,17 +1907,60 @@ def _gerade_schnitt(p1, p2, q1, q2):
     return (p1[0] + d1[0] * t, p1[1] + d1[1] * t)
 
 
+def _wand_t_anschluss(x, y):
+    """T junction: the end of wall x runs onto the middle of wall y. The end is moved to the
+    centre line of y (extended or trimmed in its own direction). -> dict or None."""
+    if x.geschlossen or len(x.punkte) < 2:
+        return None
+    best = None
+    for idx in (0, -1):
+        e = x.punkte[idx]
+        v = x.punkte[1] if idx == 0 else x.punkte[-2]
+        for i, j in y._segmente():
+            a, b = y.punkte[i], y.punkte[j]
+            sl = math.hypot(b[0] - a[0], b[1] - a[1])
+            if sl < max(y.dicke, 1e-9):
+                continue
+            ip = _gerade_schnitt(v, e, a, b)
+            if ip is None:
+                continue
+            s = ((ip[0] - a[0]) * (b[0] - a[0]) + (ip[1] - a[1]) * (b[1] - a[1])) / sl     # mm along y
+            if s < -1e-6 or s > sl + 1e-6:
+                continue
+            # a real end of y at the intersection = corner, not a T junction
+            rand = 0.5 * y.dicke + 1.0
+            if not y.geschlossen:
+                if (i == 0 and s < rand) or (j == len(y.punkte) - 1 and sl - s < rand):
+                    continue
+            # the intersection must lie in the direction of the extension / not behind the wall
+            d = math.hypot(ip[0] - e[0], ip[1] - e[1])
+            if d > max(x.dicke, y.dicke) * 6.0:
+                continue
+            if best is None or d < best[0]:
+                best = (d, idx, ip)
+    if best is None:
+        return None
+    return {"modus": "t", "wand": x, "index": best[1], "punkt": best[2]}
+
+
 def wand_verbinden(a, b):
-    """Joins two walls at their nearest ends into ONE wall (corner or straight): the centre
-    lines are extended / trimmed to their intersection (mitred corner).
+    """Joins two walls. T junction (end of one wall on the middle of the other): the end is moved
+    onto the other wall -> {"modus": "t", "wand", "index", "punkt"}. Otherwise both are joined at
+    their nearest ends into ONE wall (corner or straight): the centre lines are extended / trimmed
+    to their intersection (mitred corner).
     -> {"punkte", "rev_a", "rev_b", "dicke", "ausrichtung"} or the error key (str):
     "gleich", "geschlossen", "zu_kurz", "parallel", "zu_weit"."""
     if a is b:
         return "gleich"
-    if a.geschlossen or b.geschlossen:
-        return "geschlossen"
     if len(a.punkte) < 2 or len(b.punkte) < 2:
         return "zu_kurz"
+    ts = [t for t in (_wand_t_anschluss(a, b), _wand_t_anschluss(b, a)) if t]
+    if ts:
+        t = min(ts, key=lambda t: math.hypot(t["punkt"][0] - t["wand"].punkte[t["index"]][0],
+                                             t["punkt"][1] - t["wand"].punkte[t["index"]][1]))
+        return t
+    if a.geschlossen or b.geschlossen:
+        return "geschlossen"
     best = None
     for ea in (0, -1):
         for eb in (0, -1):

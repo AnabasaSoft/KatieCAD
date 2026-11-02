@@ -7,6 +7,9 @@
 - New: **"Join walls" button** in the toolbar: click the first and second wall, they are merged at once into one wall with a mitred corner
 - New: wall hatch also as **solid fill**; default line spacing 180 mm
 - Fix: hatch ran through doors and windows; doors and windows on the wall line (position "left/right") were sometimes not recognised in the wall and cut no gap
+- New: **walls form one common outline automatically:** where walls touch, cross or overlap, faces, end caps and hatch inside the other wall are no longer drawn (T junctions, crossings, overhangs)
+- New: **T junction with "Join walls":** if the end of a wall is in front of or in the middle of another, it is extended or trimmed onto its centre line
+- Fix: **Ortho** now also applies when dragging wall and polyline points by their grips (relative to the neighbouring point)
 - Fix: **"Join walls"** got stuck after the first click (the click was pulled onto the object snap and hit the first wall again); now the actual click position counts, the second wall must be a different one, afterwards the tool returns to selection
 - Fix: if several walls lie on top of each other, doors and windows now cut into all of them (before, the hatch of the other wall stayed)
 - Change: the layer "Wände" has the colour #c29bff by default

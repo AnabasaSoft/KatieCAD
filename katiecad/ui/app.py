@@ -5062,6 +5062,16 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if isinstance(r, str):
             self.status.set(tr("msg.wand.verb_" + r))
             return
+        if r.get("modus") == "t":                          # T junction: move the end onto the other wall
+            self._snapshot()
+            x = r["wand"]
+            pl = [tuple(q) for q in x.punkte]
+            pl[r["index"]] = tuple(r["punkt"])
+            x.punkte = pl
+            self.auswahl = [x]
+            self.redraw()
+            self.status.set(tr("msg.wand.angeschlossen"))
+            return
         # doors / windows sitting on a wall whose direction is reversed keep their look
         umgedreht = ([a] if r["rev_a"] else []) + ([b] if r["rev_b"] else [])
         self._snapshot()
@@ -7752,7 +7762,14 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                                                 tags=("vorschau",))
 
     def _griff_bewegen_zu(self, event):
-        pt = self._eingabepunkt(event)
+        ref = None
+        el = self._griff_drag_el
+        gid = str(self._griff_drag_id)
+        if self.ortho.get() and hasattr(el, "punkte") and gid[:1] == "p" and gid[1:].isdigit():
+            i, n = int(gid[1:]), len(el.punkte)
+            if n >= 2:                                    # Ortho relative to the neighbouring vertex
+                ref = el.punkte[i - 1] if (i > 0 or getattr(el, "geschlossen", False)) else el.punkte[1]
+        pt = self._eingabepunkt(event, ref)
         self._griff_drag_el.griff_bewegen(self._griff_drag_id, pt[0], pt[1])
         self.redraw()
 

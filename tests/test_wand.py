@@ -166,4 +166,23 @@ _f = core.Oeffnung("fenster", 3000, 0)
 core.wand_verknuepfen([_a, _b, _t, _f])
 check(bool(_a._luecken) and bool(_b._luecken), "Doppelte Waende: Tuer schneidet in beide")
 check(bool(_a._fenster) and bool(_b._fenster), "Doppelte Waende: Fenster in beiden")
+# Wandanschluss (T) und gemeinsame Kontur
+_B = core.Wand([(0, 0), (6000, 0)], dicke=240, schraffur="schraeg")
+_A = core.Wand([(3000, -3000), (3000, -300)], dicke=240, schraffur="schraeg")
+_r = core.wand_verbinden(_A, _B)
+check(isinstance(_r, dict) and _r.get("modus") == "t" and abs(_r["punkt"][1]) < 1e-6 and abs(_r["punkt"][0] - 3000) < 1e-6,
+      "T-Anschluss: Wandende wird auf die andere Wand gesetzt")
+_A.punkte[_r["index"]] = _r["punkt"]
+core.wand_verknuepfen([_B, _A])
+check(max(p[1] for pl, _c in _A.prims(schraffur=False) for p in pl) < 1.0
+      and max(p[1] for pl, _c in _A.prims(schraffur=False) for p in pl) > -121,
+      "T-Anschluss: Wandflaechen enden an der Flaeche der anderen Wand, Kappe verschwindet")
+_A2 = core.Wand([(3000, -3000), (3000, 500)], dicke=240)
+core.wand_verknuepfen([_B, _A2])
+check(all(not (-100 < min(p[1] for p in pl) and max(p[1] for p in pl) < 100) for pl, _c in _A2.prims(schraffur=False)),
+      "Ueberstand: nichts im Inneren der anderen Wand gezeichnet")
+_W1 = core.Wand([(0, 0), (3000, 0)]); _W2 = core.Wand([(3100, 100), (3100, 3000)])
+check(core.wand_verbinden(_W1, _W2).get("modus") != "t", "Ecke bleibt Ecke (Verschmelzen)")
+check("_abzug" not in json.loads(json.dumps(_A.to_dict())), "Laufzeitdaten werden nicht gespeichert")
+check("msg.wand.angeschlossen" in I.TEXTE["de"] and "msg.wand.angeschlossen" in I.TEXTE["en"], "Meldung angeschlossen")
 print(f"test_wand - {ok} Checks bestanden")
