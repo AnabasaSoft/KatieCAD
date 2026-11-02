@@ -1,6 +1,7 @@
 # Changes
 
 ## 1.1.3
+- New: **3D objects can be copied to another sheet with Ctrl+C / Ctrl+X / Ctrl+V:** in the 3D view the copy hangs on the mouse after Ctrl+V (with object snap) and is put down with a click. Fix: pasting in the 2D view placed a 3D body wrongly (the reference point was 0/0)
 - New: **3D - exact distance when moving:** while dragging an axis arrow just type the number (e.g. `300`, Backspace deletes, `-` = opposite direction) and confirm with Enter; also after clicking the arrow or via the input line
 - New: **3D - object snap when moving and placing also with the edge midpoints of the moving body** (previously only its corners); the edge midpoints of existing bodies were already snapped
 - Fix: **moved mask texts (IND, MAN, TYP, PER, number of poles) keep their position on "Create device"** (they used to jump back to the default position); moving a text later on the placed device overrides the preset

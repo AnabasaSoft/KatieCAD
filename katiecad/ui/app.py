@@ -914,12 +914,23 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if not self._paste_vorlagen:
             self.status.set(tr("msg.zwischenablage_leer"))
             return "break"
+        w3 = self._ansicht3d if (self.ansicht3d_aktiv() and not self._ist_layout()) else None
+        if w3 is not None:
+            # 3D view: the copy hangs on the mouse with object snap (also from another sheet)
+            from katiecad.model import szene3d as _S3
+            raum = [el for el in self._paste_vorlagen if _S3.ist_raum(el)]
+            if raum:
+                self._paste_vorlagen = []
+                self.auswahl = []
+                w3._kopie_starten(raum)
+                return "break"
         if self._clipboard_mit_basis and self._clipboard_basispunkt is not None:
             self._paste_bezug = self._clipboard_basispunkt
         else:
             xs, ys = [], []
             for el in self._paste_vorlagen:
-                b = el.bbox()
+                b3 = el.bbox3() if hasattr(el, "bbox3") else None
+                b = (b3[0], b3[1], b3[3], b3[4]) if b3 else el.bbox()
                 xs.extend([b[0], b[2]])
                 ys.extend([b[1], b[3]])
             self._paste_bezug = (min(xs), min(ys)) if xs else (0.0, 0.0)

@@ -1,6 +1,7 @@
 # Änderungen
 
 ## 1.1.3
+- Neu: **3D-Objekte lassen sich mit Strg+C / Strg+X / Strg+V auch auf ein anderes Blatt kopieren:** in der 3D-Ansicht hängt die Kopie nach Strg+V an der Maus (mit Objektfang) und wird mit Klick abgesetzt. Fix: Beim Einfügen in der 2D-Ansicht lag ein 3D-Körper falsch (der Bezugspunkt war 0/0)
 - Neu: **3D – exakter Abstand beim Verschieben:** Beim Ziehen am Achsenpfeil einfach die Zahl tippen (z. B. `300`, Rücktaste löscht, `-` = Gegenrichtung) und mit Enter übernehmen; ebenso nach einem Klick auf den Pfeil oder über die Eingabezeile
 - Neu: **3D – Objektfang beim Verschieben und Platzieren auch mit den Kantenmitten des bewegten Körpers** (bisher nur mit dessen Ecken); die Kantenmitten bestehender Körper wurden schon gefangen
 - Fix: **Verschobene Maskentexte (IND, MAN, TYP, PER, Polzahl) bleiben beim „Gerät erstellen“ an ihrer Position** (sie sprangen vorher auf die Standardlage zurück); ein späteres Verschieben am platzierten Gerät überschreibt die Vorgabe
