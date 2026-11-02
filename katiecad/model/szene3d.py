@@ -914,3 +914,93 @@ def clip_segment(seg, rect):
                 return None
             t1 = min(t1, t)
     return ((x0 + t0 * dx, y0 + t0 * dy), (x0 + t1 * dx, y0 + t1 * dy))
+
+
+# ============================================================
+# Stretch (command STRECKEN in 3D)
+# ============================================================
+def _teile_flach(elemente):
+    out = []
+    for el in elemente:
+        if isinstance(el, Gruppe3D):
+            out.extend(_teile_flach(el.teile))
+        else:
+            out.append(el)
+    return out
+
+
+def auswahl_bbox3(elemente):
+    bs = [b for b in (t.bbox3() for t in _teile_flach(elemente) if hasattr(t, "bbox3")) if b]
+    if not bs:
+        return None
+    return (min(b[0] for b in bs), min(b[1] for b in bs), min(b[2] for b in bs),
+            max(b[3] for b in bs), max(b[4] for b in bs), max(b[5] for b in bs))
+
+
+def _koerper_dehnen(k, i, lo, hi, nlo, nhi):
+    """Resizes the extent [lo, hi] of the body `k` along axis i to [nlo, nhi].
+    -> False if this kind of body cannot be stretched (work plane, merged body, sphere,
+    cut-outs)."""
+    if k.art not in ("prisma", "pyramide") or k.ebene or k.ausschnitte:
+        return False
+    if hi - lo < 1e-9 or nhi - nlo < 1e-6:
+        return False
+    if i == 2:
+        if k.hoehe >= 0:
+            k.z0, k.hoehe = nlo, nhi - nlo
+        else:
+            k.z0, k.hoehe = nhi, -(nhi - nlo)
+        return True
+    f = (nhi - nlo) / (hi - lo)
+
+    def m(u):
+        return nlo + (u - lo) * f
+
+    k.profil = [((m(x), y) if i == 0 else (x, m(y))) for (x, y) in k.profil]
+    if k.spitze:
+        k.spitze = (m(k.spitze[0]), k.spitze[1]) if i == 0 else (k.spitze[0], m(k.spitze[1]))
+    k.loecher = [((m(x), y, r, t) if i == 0 else (x, m(y), r, t)) for (x, y, r, t) in k.loecher]
+    return True
+
+
+def strecken(elemente, i, seite, delta, tol=None, gross=0.5):
+    """Stretches 3D objects along axis i (0 = X, 1 = Y, 2 = Z): the face of the
+    selection on `seite` (+1 = maximum side, -1 = minimum side) moves by `delta`.
+    Parts that reach the moving face (within `tol`, default 1 % of the extent, at least 5 mm) and are large along the axis (>= `gross` of the whole
+    extent, e.g. carcass or door) change their size, small parts there (rails, handles ...)
+    move along, all other parts stay. -> (stretched, moved, unchanged)"""
+    teile = _teile_flach(elemente)
+    bb = auswahl_bbox3(elemente)
+    if bb is None or abs(delta) < 1e-12:
+        return 0, 0, 0
+    lo_g, hi_g = bb[i], bb[i + 3]
+    C = hi_g if seite > 0 else lo_g
+    gesamt = max(hi_g - lo_g, 1e-9)
+    if tol is None:                  # parts slightly set back (door, side panels) still count
+        tol = max(5.0, 0.01 * gesamt)
+    n_dehn = n_bew = n_fest = 0
+    for t in teile:
+        b = t.bbox3() if hasattr(t, "bbox3") else None
+        if not b:
+            n_fest += 1
+            continue
+        lo, hi = b[i], b[i + 3]
+        beruehrt = hi >= C - tol if seite > 0 else lo <= C + tol
+        if not beruehrt:
+            continue
+        gross_genug = (hi - lo) >= gross * gesamt
+        if gross_genug and isinstance(t, Koerper3D):
+            nlo, nhi = (lo, hi + delta) if seite > 0 else (lo + delta, hi)
+            if _koerper_dehnen(t, i, lo, hi, nlo, nhi):
+                n_dehn += 1
+                continue
+            n_fest += 1                      # large but not stretchable: stays
+            continue
+        if hasattr(t, "verschieben"):
+            d = [0.0, 0.0, 0.0]
+            d[i] = delta
+            t.verschieben(*d)
+            n_bew += 1
+        else:
+            n_fest += 1
+    return n_dehn, n_bew, n_fest

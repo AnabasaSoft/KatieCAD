@@ -284,6 +284,26 @@ _bl = {t.bez: t.bbox3() for t in _gl.teile}
 check(_bl["Türgriff"][0] < 100 and _b2["Türgriff"][3] > 500, "Türgriff links/rechts")
 for k in ("d3.schrank.griff", "d3.schrank.rechts", "d3.schrank.links"):
     check(k in I.TEXTE["de"] and k in I.TEXTE["en"], k)
+# ---- Strecken in 3D ----------------------------------------------------------
+_qs = core.quader(0, 0, 600, 300, 0, 1800)
+check(S.strecken([_qs], 2, +1, -200) == (1, 0, 0) and _qs.bbox3()[5] == 1600 and _qs.bbox3()[2] == 0, "Strecken: Oberkante -200")
+_qs = core.quader(0, 0, 600, 300, 0, 1800)
+S.strecken([_qs], 0, -1, 100); check(_qs.bbox3()[0] == 100 and _qs.bbox3()[3] == 600, "Strecken: linke Seite +100 (schrumpft)")
+_qs = core.quader(0, 0, 600, 300, 0, 1800)
+S.strecken([_qs], 1, +1, 50); check(_qs.bbox3()[4] == 350, "Strecken: Tiefe +50")
+_sg = SCH.schrank_bauen(600, 1800, 300, 0, 0, 0, None, 0, True, True, True)
+_r = S.strecken([_sg], 2, +1, -200)
+_bz = {t.bez: t.bbox3() for t in _sg.teile}
+check(_r[0] == 4 and _bz["Schaltschrank"][5] == 1600 and _bz["Tür"][5] == 1597 and _bz["Seitenwand links"][5] == 1597, f"Strecken Schrank: Korpus/Tür/Seiten kuerzer {_r}")
+check(abs(_bz["Türgriff"][2] - 930) < 1e-6 and abs(_bz["Türgriff"][5] - 1050) < 1e-6, "Strecken Schrank: Griff bleibt")
+_sg = SCH.schrank_bauen(600, 1800, 300, 0, 0, 0, None, 0, True, True, True)
+S.strecken([_sg], 0, +1, 100); _bz = {t.bez: t.bbox3() for t in _sg.teile}
+check(_bz["Schaltschrank"][3] == 700 and abs(_bz["Seitenwand rechts"][0] - 698.5) < 1e-6 and _bz["Seitenwand rechts"][3] == 700, "Strecken Schrank: Breite +100, rechte Wand wandert mit")
+check(S.strecken([core.quader(0, 0, 10, 10, 0, 10)], 2, 1, 0.0) == (0, 0, 0), "Strecken: 0 = nichts")
+_qs = core.quader(0, 0, 10, 10, 0, 10)
+S.strecken([_qs], 2, +1, -50); check(_qs.bbox3()[5] == 10, "Strecken: nicht unter Null (Koerper bleibt)")
+for k in ("d3.modus.strecken", "d3.msg.strecken_p2", "d3.msg.strecken_leer", "d3.msg.strecken_nichts", "d3.msg.gestreckt"):
+    check(k in I.TEXTE["de"] and k in I.TEXTE["en"], k)
 _tf = core.Text3D((10, 0, 20), "AB", 10, ebene=(10, 0, 20, 1, 0, 0, 0, 0, 1))
 _zz = _tf.zuege3()
 check(_zz and all(abs(p[1]) < 1e-9 for z in _zz for p in z), "Text3D liegt in der Fläche (vorne)")

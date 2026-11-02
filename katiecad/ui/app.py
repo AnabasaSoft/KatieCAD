@@ -2252,8 +2252,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             return
         if sichtbar:
             if not self.viewport_leiste.winfo_ismapped():
-                self.viewport_leiste.pack(side=tk.TOP, fill=tk.X,
-                                          before=self.canvas)
+                # the 2D canvas is not packed while the 3D view is shown
+                anker = self._ansicht3d if self._ansicht3d is not None else self.canvas
+                self.viewport_leiste.pack(side=tk.TOP, fill=tk.X, before=anker)
         else:
             self.viewport_leiste.pack_forget()
 
@@ -8098,6 +8099,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if typ in ("move", "copy") and self.ansicht3d_aktiv() and not self._ist_layout():
             self._ansicht3d.punkt_verschieben(typ == "copy")      # 3D: base point -> target point
             return
+        if typ == "stretch" and self.ansicht3d_aktiv() and not self._ist_layout():
+            self._ansicht3d.punkt_strecken()                     # 3D: base point -> target / distance
+            return
         if typ == "stretch":
             vorher = list(self.auswahl)
             self.aktives_werkzeug.set("auswahl")
@@ -9078,6 +9082,11 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         self._block_einfuege_name = None
         self._block_erzeuge_auswahl = None
         self._attdef_wartend = None
+        if self._ist_layout() and self.ansicht3d_aktiv():
+            # a layout is shown in the 2D canvas: close the 3D window first
+            self._ansicht3d_aus_fenster()
+            self._3d_var_holen().set(False)
+            self.werkzeuge_fuer_3d()
         bg = self.bg_modell if not self._ist_layout() else self.bg_layout
         self.canvas.config(bg=bg)
         self.bg_btn.config(bg=bg)

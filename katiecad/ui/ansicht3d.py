@@ -436,7 +436,7 @@ def _vorzeichen(k):
 
 
 class Ansicht3D(tk.Frame):
-    MODI = ("flaeche", "linie", "kreis", "rechteck", "poly", "bem", "pivot", "text", "messen", "verschieben")
+    MODI = ("flaeche", "linie", "kreis", "rechteck", "poly", "bem", "pivot", "text", "messen", "verschieben", "strecken")
     SKIZZEN = ("linie", "kreis", "rechteck", "poly")
 
     def __init__(self, app):
@@ -949,6 +949,39 @@ class Ansicht3D(tk.Frame):
         self.modus_setzen("verschieben")
         self.info_var.set(tr("d3.modus.kopieren" if kopie else "d3.modus.verschieben"))
 
+    def punkt_strecken(self):
+        """STRETCH in 3D: base point, then the target point (or a typed distance). The axis
+        is the dominant direction of the movement; the face of the selection on the side of
+        the base point moves, large parts change their size (see szene3d.strecken)."""
+        if not [x for x in self.app.auswahl if S.ist_raum(x)]:
+            self.info_var.set(tr("d3.msg.strecken_leer"))
+            return
+        self.modus_setzen("strecken")
+
+    def _strecken_parameter(self, p0, q):
+        """(axis, side, distance) of a stretch from base point p0 towards q."""
+        d = G.v_sub(q, p0)
+        i = max(range(3), key=lambda k: abs(d[k]))
+        bb = S.auswahl_bbox3([x for x in self.app.auswahl if S.ist_raum(x)])
+        mitte = (bb[i] + bb[i + 3]) / 2.0 if bb else 0.0
+        seite = 1 if p0[i] >= mitte else -1
+        return i, seite, d[i]
+
+    def _strecken_fertig(self, i, seite, delta):
+        ziele = [x for x in self.app.auswahl if S.ist_raum(x)]
+        self.app._snapshot()
+        n_dehn, n_bew, n_fest = S.strecken(ziele, i, seite, delta)
+        self._skiz = None
+        self._modus_ende()
+        self.app.redraw()
+        self.zeichne()
+        f = self.app._einh_faktor()
+        if not (n_dehn or n_bew):
+            self.info_var.set(tr("d3.msg.strecken_nichts"))
+            return
+        self.info_var.set(tr("d3.msg.gestreckt", achse="XYZ"[i], wert=f"{delta / f:.2f}",
+                             einheit=self.app.einheit.get(), n=n_dehn, m=n_bew, k=n_fest))
+
     def ebene_zuruecksetzen(self):
         self.zustand["plane"] = None
         self.zustand["auto"] = False
@@ -1032,7 +1065,7 @@ class Ansicht3D(tk.Frame):
         p = r[0] if r else None
         sk = self._skiz
         if (p is not None and sk and self.app.ortho.get() and len(sk.get("pts", ())) == 1
-                and sk["form"] in ("bem", "messen", "verschieben")):
+                and sk["form"] in ("bem", "messen", "verschieben", "strecken")):
             # ORTHO: only along the dominant coordinate axis from the first point
             q = sk["pts"][0]
             d = G.v_sub(p, q)
@@ -1048,7 +1081,7 @@ class Ansicht3D(tk.Frame):
             return
         h = {"fang": None, "flaeche": None}
         erste = self._skiz is None
-        if m in ("bem", "pivot", "messen", "verschieben"):
+        if m in ("bem", "pivot", "messen", "verschieben", "strecken"):
             h["fang"] = self._fang_raum(e)
             fl = self._flaeche_unter(e) if self.zustand.get("auto", True) else None
             h["flaeche"] = fl[1] if fl else None
@@ -1265,6 +1298,18 @@ class Ansicht3D(tk.Frame):
             elif G.v_len(G.v_sub(p, sk["pts"][0])) > 1e-9:
                 self._punkt_verschieben_fertig(G.v_sub(p, sk["pts"][0]))
             self.zeichne()
+        elif m == "strecken":
+            p = self._raum_punkt(e)
+            if p is None:
+                self.info_var.set(tr("d3.msg.keine_ebene"))
+                return
+            sk = self._skiz
+            if sk is None:
+                self._skiz = {"form": "strecken", "pts": [p]}
+                self.info_var.set(tr("d3.msg.strecken_p2"))
+            elif G.v_len(G.v_sub(p, sk["pts"][0])) > 1e-9:
+                self._strecken_fertig(*self._strecken_parameter(sk["pts"][0], p))
+            self.zeichne()
         elif m == "bem":
             p = self._raum_punkt(e)
             if p is None:
@@ -1435,6 +1480,21 @@ class Ansicht3D(tk.Frame):
                                             gelb, 1, (4, 3), "vorschau")
                 self._text3(G.v_mul(G.v_add(sk["pts"][0], q), 0.5),
                             f"{G.v_len(d) / self.app._einh_faktor():.2f} {self.app.einheit.get()}",
+                            gelb, "vorschau")
+            return
+        if sk["form"] == "strecken":
+            q = self._raum_punkt(self._maus)
+            if q:
+                i, seite, delta = self._strecken_parameter(sk["pts"][0], q)
+                kopien = [deepcopy(x) for x in self.app.auswahl if S.ist_raum(x)]
+                S.strecken(kopien, i, seite, delta)
+                self._linie(sk["pts"][0], q, gelb, 1, (4, 3), "vorschau")
+                for el in kopien:
+                    for nz in (el.netze() if S.ist_3d(el) else []):
+                        for (a, b) in nz.kanten:
+                            self._linie(nz.punkte[a], nz.punkte[b], gelb, 1, (4, 3), "vorschau")
+                self._text3(G.v_mul(G.v_add(sk["pts"][0], q), 0.5),
+                            f"{'XYZ'[i]}: {delta / self.app._einh_faktor():+.2f} {self.app.einheit.get()}",
                             gelb, "vorschau")
             return
         if sk["form"] == "messen":
@@ -1795,6 +1855,15 @@ class Ansicht3D(tk.Frame):
         'x,y' on the work plane; then circle: radius, rectangle: 'width,height' (or 'width x
         height'), line: 'length' or 'length<angle', polyline: 'x,y' or '@dx,dy'. -> True if used."""
         m = self._modus
+        if (m == "strecken" and self._skiz and self._skiz.get("form") == "strecken"
+                and self._zahl_tippen(text) is not None):
+            # typed stretch distance along the axis of the current mouse direction (default Z)
+            p0 = self._skiz["pts"][0]
+            q = self._raum_punkt(self._maus) if self._maus else None
+            i = max(range(3), key=lambda k: abs(G.v_sub(q, p0)[k])) if q else 2
+            _i, seite, _d = self._strecken_parameter(p0, q) if q else (2, 1, 0.0)
+            self._strecken_fertig(i, seite, self._zahl_tippen(text) * self.app._einh_faktor())
+            return True
         if m not in self.SKIZZEN:
             # a plain number moves the selection exactly along the chosen axis
             if (self._skiz is None and self._platz is None and self.app.auswahl
