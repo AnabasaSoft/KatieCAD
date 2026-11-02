@@ -7,6 +7,7 @@
 - New: **"Join walls" button** in the toolbar: click the first and second wall, they are merged at once into one wall with a mitred corner
 - New: wall hatch also as **solid fill**; default line spacing 180 mm
 - Fix: hatch ran through doors and windows; doors and windows on the wall line (position "left/right") were sometimes not recognised in the wall and cut no gap
+- New: **Rooms** (Insert > Room, "Room" button, command `ROOM`): drag a box around the room (two corners), enter room number and room name - the area in m² is calculated automatically. The box stays invisible, only the text (number, name, area) is shown; clicking the text shows the box with corner grips to change the room size at will (the area is recalculated); the centre grip moves the text only, double click opens number/name. Own layer "Räume", output as text in PDF and DXF
 - New: **Close wall:** clicking the same wall twice in the join tool (or right click > Close wall) joins start and end with a clean mitred corner
 - Fix: **doors and windows cut their gap and hatch correctly only in the first segment of a wall** (in all further segments, e.g. rooms made of one wall, the hatch ran through the door)
 - New: **walls form one common outline automatically:** where walls touch, cross or overlap, faces, end caps and hatch inside the other wall are no longer drawn (T junctions, crossings, overhangs)

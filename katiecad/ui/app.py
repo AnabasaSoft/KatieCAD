@@ -71,7 +71,7 @@ from katiecad.model.core import (
     BEFEHLE, PdfSeite, ist_dunkel,
     E_DEVICES, E_LINES, E_CABLE, E_CLAMPS, E_PIN, ELEKTRO_LAYER, FTEXT_LAYER,
     Layer, Layout, Element, Linie, Kreis, Bogen, Rechteck, Polylinie, Text,
-    Ellipse, Spline, Wand, Oeffnung, WAND_LAYER, WAND_LAYER_FARBE,
+    Ellipse, Spline, Wand, Oeffnung, Raum, RAUM_LAYER, RAUM_LAYER_FARBE, WAND_LAYER, WAND_LAYER_FARBE,
     wand_verknuepfen, wand_in_linien, wand_verbinden, wand_schliessen,
     Bemassung, Viewport, Schraffur, Bild, konturen_aus_elementen, bereich_an_punkt,
     AttributDefinition, Leitung, Verbindungspunkt, Querverweis,
@@ -96,7 +96,7 @@ from katiecad.ui.dialogs import (
     _BlockNameDialog, _BlockAuswahlDialog, BlockBrowserDialog,
     BlockSpeichernDialog,
     ProjektNeuDialog, AttributDefinitionDialog, BlockAttributeDialog,
-    MasstextDialog, WandDialog, OeffnungDialog, BauteilkatalogDialog, SchnellauswahlDialog, SuchenErsetzenDialog, QuerverweisDialog, PruefungDialog, EigenschaftenPalette, VerbindungspunkteDialog, ProjektDruckDialog,
+    MasstextDialog, WandDialog, OeffnungDialog, RaumDialog, BauteilkatalogDialog, SchnellauswahlDialog, SuchenErsetzenDialog, QuerverweisDialog, PruefungDialog, EigenschaftenPalette, VerbindungspunkteDialog, ProjektDruckDialog,
     VerbindungspunktDialog, VerbindungDialog, FestMaskeDialog,
     KoordinatenfeldDialog,
     TitleBlockDialog, DokumentationDialog, ListenAuswahlDialog, SchriftenDialog, ProjektEigenschaftenDialog,
@@ -1294,6 +1294,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                            command=lambda: self._werkzeug_aus_menue("fenster"))
         m_einf.add_command(label=tr("menu.wand.verbinden"), command=self.wand_verbinden_befehl)
         m_einf.add_command(label=tr("menu.wand.schraffur"), command=self.wand_schraffur_umschalten)
+        m_einf.add_command(label=tr("menu.einfuegen.raum"),
+                           command=lambda: self._werkzeug_aus_menue("raum"))
         m_einf.add_separator()
         m_einf.add_command(label=tr("menu.einfuegen.text"),
                            command=lambda: self._werkzeug_aus_menue("text"))
@@ -1559,7 +1561,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         ttk.Label(tb, text=tr("tb.werkzeug"), style="Title.TLabel").pack(side=tk.LEFT, padx=(0, 4))
         for key in ("auswahl", "linie", "polylinie", "kreis", "bogen",
                     "ellipse", "spline", "rechteck", "text", "bemassung",
-                    "stutzen", "brechen", "wand", "tuer", "fenster", "wandverb"):
+                    "stutzen", "brechen", "wand", "tuer", "fenster", "wandverb", "raum"):
             self._werkzeug_knopf(tb, key, FARBEN["cyan"])
         self._befehl_knopf(tb, "laenge", FARBEN["cyan"], self.laenge_start)
         self._befehl_knopf(tb, "suchen", FARBEN["cyan"], self.suchen_ersetzen)
@@ -2073,6 +2075,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         elif wz == "wandverb":
             self._wand_verb_erste = None
             self.status.set(tr("msg.wand.verb_erste"))
+        elif wz == "raum":
+            self._raum_layer_sicherstellen()
+            self.status.set(tr("msg.raum.klick"))
 
     def _bem_art_starten(self, art):
         """Activates the dimension tool with radius/diameter preselected."""
@@ -3859,6 +3864,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             return punkt_in_gedrehtem_rechteck(x_mm, y_mm, (el.bbox()[0]+el.bbox()[2])/2, (el.bbox()[1]+el.bbox()[3])/2, el.bbox()[2]-el.bbox()[0], el.bbox()[3]-el.bbox()[1], 0.0)
         if isinstance(el, Verbindungspunkt):
             return el.trifft(x_mm, y_mm, tol)
+        if isinstance(el, Raum):
+            return el.trifft(x_mm, y_mm, tol, self.dezimalkomma.get())   # only the label, the frame is invisible
         if isinstance(el, Wand) and el.punkt_im_koerper(x_mm, y_mm, tol):
             return True                          # the whole wall body counts, not only the faces
         if isinstance(el, Oeffnung) and el.trifft(x_mm, y_mm, tol):
@@ -4217,6 +4224,11 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 self._ziel_liste().append(self._neues_rechteck(lp[0], lp[1], x_mm, y_mm))
                 self.letzter_punkt = None
                 self.redraw()
+        elif werkzeug == "raum":
+            if lp is None:
+                self.letzter_punkt = pt
+            elif abs(x_mm - lp[0]) > 1e-9 and abs(y_mm - lp[1]) > 1e-9:
+                self._raum_neu(lp[0], lp[1], x_mm, y_mm)
         elif werkzeug == "bogen":
             self._bogen_klick(pt)
         elif werkzeug == "bemassung":
@@ -4750,6 +4762,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if isinstance(el, Oeffnung):
             self._oeffnung_bearbeiten(el)
             return
+        if isinstance(el, Raum):
+            self._raum_bearbeiten(el)
+            return
         vorher = self._zustand()
         dlg = PropertiesDialog(self.root, self, el)
         if dlg.result:
@@ -4951,6 +4966,46 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         daten["staerke"] = None
         daten["linientyp"] = "Volllinie (schmal)"
         return daten
+
+    def _raum_layer_sicherstellen(self):
+        """Own layer for rooms (created on first use)."""
+        if RAUM_LAYER not in self.layers:
+            self.layers[RAUM_LAYER] = Layer(RAUM_LAYER, RAUM_LAYER_FARBE[0], RAUM_LAYER_FARBE[1])
+            try:
+                self.layer_cb.config(values=list(self.layers.keys()))
+            except Exception:
+                pass
+        return RAUM_LAYER
+
+    def _raum_layer_daten(self):
+        daten = self._layer_daten()
+        self._raum_layer_sicherstellen()
+        daten["layer"] = RAUM_LAYER
+        daten["eig_farbe"] = False
+        daten["farbe"] = self.layers[RAUM_LAYER].farbe
+        daten["staerke"] = None
+        daten["linientyp"] = "Volllinie (schmal)"
+        return daten
+
+    def _raum_neu(self, x1, y1, x2, y2):
+        """Room frame from two opposite corners, then ask number and name."""
+        self._snapshot()
+        r = Raum([(x1, y1), (x2, y1), (x2, y2), (x1, y2)], **self._raum_layer_daten())
+        self._ziel_liste().append(r)
+        self.letzter_punkt = None
+        self.auswahl = [r]
+        self.redraw()
+        self._raum_bearbeiten(r, neu=True)
+
+    def _raum_bearbeiten(self, el, neu=False):
+        dlg = RaumDialog(self.root, el)
+        if dlg.result is None:
+            return
+        if not neu:
+            self._snapshot()
+        for k, v in dlg.result.items():
+            setattr(el, k, v)
+        self.redraw()
 
     def _wand_werkzeug_start(self):
         """Wall tool selected: ask thickness and alignment, create the layer."""
@@ -6202,6 +6257,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             if typ == "spline":     return Spline(**d)
             if typ == "wand":       return Wand(**d)
             if typ == "oeffnung":   return Oeffnung(**d)
+            if typ == "raum":       return Raum(**d)
             if typ == "text":       return Text(**d)
             if typ == "bemassung":  return Bemassung(**d)
             if typ == "viewport":   return Viewport(**d)
@@ -6302,6 +6358,13 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             elif isinstance(el, Rechteck):
                 pts = [(el.x1, el.y1), (el.x2, el.y1), (el.x2, el.y2), (el.x1, el.y2)]
                 msp.add_lwpolyline(pts, close=True, dxfattribs=attribs)
+            elif isinstance(el, Raum):
+                t = el.text_obj(self.dezimalkomma.get())
+                for zi, zeile in enumerate(t.inhalt.split("\n")):
+                    tx, ty = el.text_pos()
+                    ty += (len(t.inhalt.split("\n")) - 1) / 2.0 * el.hoehe * 1.4 - zi * el.hoehe * 1.4
+                    ent = msp.add_text(zeile, dxfattribs={**attribs, "height": el.hoehe})
+                    ent.set_placement((tx, ty), align=ezdxf.enums.TextEntityAlignment.MIDDLE_CENTER)
             elif isinstance(el, (Wand, Oeffnung)):
                 if isinstance(el, Wand):
                     for q in el.flaechen():
@@ -6603,6 +6666,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                     ("Center 'x,y' OR click" if self.letzter_punkt is None
                      else ("Enter radius" if self.kreis_modus.get() == "radius"
                            else "Enter diameter"))))
+        elif w == "raum":
+            h(text=tr("msg.raum.hinweis"))
         elif w == "rechteck":
             h(text=(("Ersten Eckpunkt 'x,y' ODER klicken" if self.letzter_punkt is None
                      else "'Breite,Höhe' ODER klicken") if de else
@@ -7092,6 +7157,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         if isinstance(el, Rechteck):
             return [("l", [(el.x1, el.y1), (el.x2, el.y1),
                            (el.x2, el.y2), (el.x1, el.y2)], True)]
+        if isinstance(el, Raum):
+            return el.prims(self.dezimalkomma.get())
         if isinstance(el, (Wand, Oeffnung)):
             fl = [("f", q) for q in el.flaechen()] if isinstance(el, Wand) else []
             return fl + [("l", pl, c) for pl, c in el.prims()]
@@ -7124,6 +7191,8 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
             return [(el.rahmen(), True)]
         if isinstance(el, Text):
             return [(el.rahmen(), True)]
+        if isinstance(el, Raum):                                  # frame only visible while selected
+            return [(list(el.punkte), True), (el.text_obj(self.dezimalkomma.get()).rahmen(), True)]
         if isinstance(el, Schraffur):
             return [(el.punkte, True)]
         if isinstance(el, ZUSAMMENGESETZT):
@@ -7672,7 +7741,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 txt = (f"R {r / einh:.2f}" if self.kreis_modus.get() == "radius"
                        else f"D {2 * r / einh:.2f}")
                 label(lp[0] + r, lp[1], txt)
-        elif w == "rechteck" and lp is not None:
+        elif w in ("rechteck", "raum") and lp is not None:
             zeige(Rechteck(lp[0], lp[1], pt[0], pt[1]))
             label((lp[0] + pt[0]) / 2, (lp[1] + pt[1]) / 2,
                   f"{abs(pt[0] - lp[0]) / einh:.1f} x {abs(pt[1] - lp[1]) / einh:.1f}", 0)
@@ -8785,6 +8854,10 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                 if sum(isinstance(e, Wand) for e in self.auswahl) == 2:
                     m.add_command(label=tr("menu.wand.verbinden"),
                                   command=self.wand_verbinden_befehl)
+            if any(isinstance(e, Raum) for e in self.auswahl):
+                m.add_command(label=tr("menu.raum.bearbeiten"),
+                              command=lambda: self._raum_bearbeiten(
+                                  next(e for e in self.auswahl if isinstance(e, Raum))))
             if any(isinstance(e, Oeffnung) for e in self.auswahl):
                 m.add_command(label=tr("menu.wand.tuer_bearbeiten"),
                               command=lambda: self._oeffnung_bearbeiten(

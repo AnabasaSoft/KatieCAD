@@ -4202,3 +4202,50 @@ def farbe_waehlen(parent, farbe="#c29bff", titel=None, von_layer=False):
     dlg = FarbDialog(parent, farbe, titel, von_layer)
     parent.wait_window(dlg)
     return dlg.result
+
+
+class RaumDialog(tk.Toplevel):
+    """Room: number, name and text height; the area is calculated automatically.
+    result = {"nummer", "bezeichnung", "hoehe"} or None."""
+
+    def __init__(self, parent, raum):
+        super().__init__(parent)
+        self.result = None
+        self.title(tr("dlg.raum.titel"))
+        self.transient(parent)
+        _modal(self)
+        self.configure(bg=FARBEN["bg_mittel"])
+        f = ttk.Frame(self, padding=14)
+        f.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(f, text=tr("dlg.raum.nummer")).grid(row=0, column=0, sticky=tk.W, pady=4)
+        self.nr_var = tk.StringVar(value=raum.nummer)
+        e = ttk.Entry(f, textvariable=self.nr_var, width=30)
+        e.grid(row=0, column=1, sticky=tk.W, padx=8)
+        e.focus_set()
+        e.select_range(0, tk.END)
+        ttk.Label(f, text=tr("dlg.raum.bezeichnung")).grid(row=1, column=0, sticky=tk.W, pady=4)
+        self.bez_var = tk.StringVar(value=raum.bezeichnung)
+        ttk.Entry(f, textvariable=self.bez_var, width=30).grid(row=1, column=1, sticky=tk.W, padx=8)
+        ttk.Label(f, text=tr("dlg.raum.hoehe")).grid(row=2, column=0, sticky=tk.W, pady=4)
+        self.h_var = tk.StringVar(value=f"{raum.hoehe:g}")
+        ttk.Entry(f, textvariable=self.h_var, width=10).grid(row=2, column=1, sticky=tk.W, padx=8)
+        ttk.Label(f, text=tr("dlg.raum.flaeche", wert=f"{raum.flaeche_m2():.2f}"),
+                  style="Hint.TLabel").grid(row=3, column=0, columnspan=2, sticky=tk.W, pady=2)
+        ttk.Label(f, text=tr("dlg.raum.hinweis"), style="Hint.TLabel", wraplength=400,
+                  justify=tk.LEFT).grid(row=4, column=0, columnspan=2, sticky=tk.W, pady=(8, 2))
+        bf = ttk.Frame(f)
+        bf.grid(row=5, column=0, columnspan=2, pady=(10, 0))
+        ttk.Button(bf, text=tr("dlg.ok"), command=self._ok).pack(side=tk.LEFT, padx=4)
+        ttk.Button(bf, text=tr("dlg.abbrechen"), command=self.destroy).pack(side=tk.LEFT, padx=4)
+        self.bind("<Return>", lambda ev: self._ok())
+        self.bind("<Escape>", lambda ev: self.destroy())
+        self.wait_window(self)
+
+    def _ok(self):
+        h = _zahl(self.h_var, 0.0, True)
+        if h is None:
+            messagebox.showwarning(tr("dlg.raum.titel"), tr("dlg.wand.zahl"), parent=self)
+            return
+        self.result = {"nummer": self.nr_var.get().strip(), "bezeichnung": self.bez_var.get().strip(),
+                       "hoehe": h}
+        self.destroy()

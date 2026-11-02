@@ -683,6 +683,7 @@ BEFEHLE = {
     "DOOR": "tool:tuer", "FENSTER": "tool:fenster", "WINDOW": "tool:fenster",
     "WANDVERBINDEN": "wand:verbinden", "WALLJOIN": "wand:verbinden", "VERBINDEN": "wand:verbinden",
     "WANDSCHRAFFUR": "wand:schraffur", "WALLHATCH": "wand:schraffur",
+    "RAUM": "tool:raum", "ROOM": "tool:raum",
     "RECHTECK": "tool:rechteck", "REC": "tool:rechteck", "RECTANG": "tool:rechteck",
     "TEXT": "tool:text", "T": "tool:text",
     "BEMASSUNG": "tool:bemassung", "BEM": "tool:bemassung", "DIM": "tool:bemassung",
@@ -5578,3 +5579,126 @@ _inst(_FestMaske, skalieren=_sk_pos, spiegeln=_sp_pos)
 _inst(Kabel, skalieren=_sk_kabel, spiegeln=_sp_kabel)
 _inst(Koordinatenfeld, skalieren=_sk_kf, spiegeln=_sp_kf)
 _inst(Bild, skalieren=_sk_kf, spiegeln=_sp_kf)
+
+
+# ---- Rooms (building plans) ------------------------------------------------------------
+RAUM_LAYER = "Räume"
+RAUM_LAYER_FARBE = ("#8fd19e", 0.25)          # colour, line weight of the automatic room layer
+
+
+class Raum(Element):
+    """Room definition: a frame (polygon, normally a rectangle) around the room area that is
+    INVISIBLE; only its label is shown: room number, room name and the area in m² (calculated
+    automatically, drawing units are mm). Clicking the label selects the room - only then the frame
+    and its corner grips appear, so the room can be reshaped by its corners. The label sits at the
+    centre of the area (grip "t" moves it)."""
+
+    def __init__(self, punkte, nummer="", bezeichnung="", hoehe=250.0, tx=None, ty=None, **kw):
+        super().__init__("raum", **kw)
+        self.punkte = [tuple(float(v) for v in p) for p in punkte]
+        self.nummer = str(nummer)
+        self.bezeichnung = str(bezeichnung)
+        self.hoehe = max(1.0, float(hoehe))          # text height in mm
+        self.tx = None if tx is None else float(tx)
+        self.ty = None if ty is None else float(ty)
+
+    # ---- geometry
+    def flaeche_mm2(self):
+        n = len(self.punkte)
+        a = 0.0
+        for k in range(n):
+            x1, y1 = self.punkte[k]
+            x2, y2 = self.punkte[(k + 1) % n]
+            a += x1 * y2 - x2 * y1
+        return abs(a) / 2.0
+
+    def flaeche_m2(self):
+        return self.flaeche_mm2() / 1e6
+
+    def schwerpunkt(self):
+        n = len(self.punkte)
+        if n == 0:
+            return (0.0, 0.0)
+        a = cx = cy = 0.0
+        for k in range(n):
+            x1, y1 = self.punkte[k]
+            x2, y2 = self.punkte[(k + 1) % n]
+            f = x1 * y2 - x2 * y1
+            a += f
+            cx += (x1 + x2) * f
+            cy += (y1 + y2) * f
+        if abs(a) < 1e-9:
+            return (sum(p[0] for p in self.punkte) / n, sum(p[1] for p in self.punkte) / n)
+        return (cx / (3.0 * a), cy / (3.0 * a))
+
+    def text_pos(self):
+        if self.tx is not None and self.ty is not None:
+            return (self.tx, self.ty)
+        return self.schwerpunkt()
+
+    def inhalt(self, komma=True):
+        flaeche = f"{self.flaeche_m2():.2f} m²"
+        if komma:
+            flaeche = flaeche.replace(".", ",")
+        zeilen = [self.nummer or "-", self.bezeichnung or "-", flaeche]
+        return "\n".join(zeilen)
+
+    def text_obj(self, komma=True):
+        x, y = self.text_pos()
+        return Text(x, y, self.inhalt(komma), hoehe=self.hoehe, einfuegepunkt="mitte_zentriert",
+                    layer=self.layer, farbe=self.farbe, linientyp=self.linientyp,
+                    eig_farbe=self.eig_farbe, staerke=self.staerke)
+
+    def prims(self, komma=True):
+        """Only the label is drawn (the frame stays invisible)."""
+        x, y = self.text_pos()
+        return [("t", x, y, self.inhalt(komma), self.hoehe, 0.0, "Arial", "mitte_zentriert")]
+
+    def trifft(self, x, y, tol=0.0, komma=True):
+        return self.text_obj(komma).punkt_im_rahmen(x, y, tol)
+
+    def bbox(self):
+        xs = [p[0] for p in self.text_obj().rahmen()]
+        ys = [p[1] for p in self.text_obj().rahmen()]
+        return (min(xs), min(ys), max(xs), max(ys))
+
+    # ---- editing
+    def verschieben(self, dx, dy):
+        self.punkte = [(x + dx, y + dy) for x, y in self.punkte]
+        if self.tx is not None:
+            self.tx += dx
+            self.ty += dy
+
+    def drehen(self, cx, cy, winkel_deg):
+        self.punkte = [punkte_drehen(x, y, cx, cy, winkel_deg) for x, y in self.punkte]
+        if self.tx is not None:
+            self.tx, self.ty = punkte_drehen(self.tx, self.ty, cx, cy, winkel_deg)
+
+    def griffe(self):
+        x, y = self.text_pos()
+        return [(f"p{i}", px, py) for i, (px, py) in enumerate(self.punkte)] + [("t", x, y)]
+
+    def griff_bewegen(self, griff_id, x, y):
+        if griff_id == "t":
+            self.tx, self.ty = x, y
+            return
+        if griff_id.startswith("p") and griff_id[1:].isdigit():
+            i = int(griff_id[1:])
+            if 0 <= i < len(self.punkte):
+                self.punkte[i] = (x, y)      # label follows the centre unless moved by hand
+
+
+def _sk_raum(e, cx, cy, f):
+    e.punkte = [_skal_pt(x, y, cx, cy, f) for (x, y) in e.punkte]
+    e.hoehe *= f
+    if e.tx is not None:
+        e.tx, e.ty = _skal_pt(e.tx, e.ty, cx, cy, f)
+
+
+def _sp_raum(e, ax, ay, bx, by):
+    e.punkte = [punkt_spiegeln(x, y, ax, ay, bx, by) for (x, y) in e.punkte]
+    if e.tx is not None:
+        e.tx, e.ty = punkt_spiegeln(e.tx, e.ty, ax, ay, bx, by)
+
+
+_inst(Raum, skalieren=_sk_raum, spiegeln=_sp_raum)
