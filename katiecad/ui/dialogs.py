@@ -2622,6 +2622,9 @@ class DokumentationDialog(tk.Toplevel):
         self.v_klg = tk.BooleanVar(value=bool(einst.get("klemmen_geraete", True)))
         ttk.Checkbutton(f, text=tr("dlg.doku.klemmen_geraete"),
                         variable=self.v_klg).pack(anchor=tk.W, padx=10, pady=(4, 0))
+        self.v_ep = tk.BooleanVar(value=bool(einst.get("einpolig_auswerten", False)))
+        ttk.Checkbutton(f, text=tr("menu.projekt.einpolig_mit"),
+                        variable=self.v_ep).pack(anchor=tk.W, padx=10, pady=(2, 0))
 
         ttk.Label(f, text=tr("dlg.doku.daten"), style="Title.TLabel").pack(
             anchor=tk.W, pady=(12, 2))
@@ -2684,6 +2687,7 @@ class DokumentationDialog(tk.Toplevel):
             "daten": {k: v.get().strip() for k, v in self.v_f.items()},
             "vorlage": pfad,
             "klemmen_geraete": bool(self.v_klg.get()),
+            "einpolig_auswerten": bool(self.v_ep.get()),
             "format": self.v_format.get(),
         }
         self.destroy()
