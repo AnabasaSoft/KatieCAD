@@ -2622,9 +2622,6 @@ class DokumentationDialog(tk.Toplevel):
         self.v_klg = tk.BooleanVar(value=bool(einst.get("klemmen_geraete", True)))
         ttk.Checkbutton(f, text=tr("dlg.doku.klemmen_geraete"),
                         variable=self.v_klg).pack(anchor=tk.W, padx=10, pady=(4, 0))
-        self.v_ep = tk.BooleanVar(value=bool(einst.get("einpolig_auswerten", False)))
-        ttk.Checkbutton(f, text=tr("menu.projekt.einpolig_mit"),
-                        variable=self.v_ep).pack(anchor=tk.W, padx=10, pady=(2, 0))
 
         ttk.Label(f, text=tr("dlg.doku.daten"), style="Title.TLabel").pack(
             anchor=tk.W, pady=(12, 2))
@@ -2667,6 +2664,10 @@ class DokumentationDialog(tk.Toplevel):
         for key, text in (("a4", "DIN A4"), ("a3", "DIN A3")):
             ttk.Radiobutton(ff, text=text, value=key,
                             variable=self.v_format).pack(side=tk.LEFT, padx=(0, 14))
+
+        self.v_ep = tk.BooleanVar(value=bool(einst.get("einpolig_auswerten", False)))
+        ttk.Checkbutton(f, text=tr("menu.projekt.einpolig_mit"),
+                        variable=self.v_ep).pack(anchor=tk.W, padx=10, pady=(12, 0))
 
         ttk.Label(f, text=tr("dlg.doku.hinweis"), style="Hint.TLabel",
                   wraplength=430, justify=tk.LEFT).pack(anchor=tk.W, pady=(12, 4))
