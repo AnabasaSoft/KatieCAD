@@ -2,7 +2,7 @@
   "format": "katiecad-block",
   "version": 1,
   "block": {
-    "name": "Steckdose",
+    "name": "Block11",
     "basispunkt": [
       0.0,
       0.0
@@ -42,14 +42,14 @@
         "staerke": 0.25,
         "x": 0.0,
         "y": 0.0,
-        "inhalt": "L, N, PE",
+        "inhalt": "L,N,PE",
         "hoehe": 2.0,
         "winkel": 0.0,
         "schriftart": "Arial",
         "einfuegepunkt": "mitte_links",
         "tag": "VP1",
         "prompt": "Pin 1",
-        "wert": "L, N, PE",
+        "wert": "L,N,PE",
         "sichtbar": true,
         "text_dx": -0.5,
         "text_dy": 1.5,
