@@ -1485,7 +1485,7 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
                          command=lambda: self.ansicht3d_befehl("verschmelzen"))
         menubar.add_cascade(label=tr("menu.3d"), menu=m_3d)
 
-        # Language
+       # Language
         m_sprache = tk.Menu(menubar, tearoff=0,
                             bg=FARBEN["bg_mittel"], fg=FARBEN["cyan"],
                             activebackground=FARBEN["cyan"],
@@ -1496,6 +1496,9 @@ class CadApp(AendernMixin, Ansicht3DMixin, ToolbarDockMixin):
         m_sprache.add_radiobutton(label=tr("menu.sprache.en"), value="en",
                                   variable=self.sprache_var,
                                   command=lambda: self.sprache_wechseln("en"))
+        m_sprache.add_radiobutton(label=tr("menu.sprache.es"), value="es",
+                                  variable=self.sprache_var,
+                                  command=lambda: self.sprache_wechseln("es"))
         menubar.add_cascade(label=tr("menu.sprache"), menu=m_sprache)
 
         # Help
